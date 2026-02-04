@@ -20,13 +20,14 @@ const userSchema = new mongoose.Schema({
     enum: ['admin', 'employer', 'user'],
     default: 'user'
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
+  fullName: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Full name cannot exceed 100 characters']
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
+  profilePhoto: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true
