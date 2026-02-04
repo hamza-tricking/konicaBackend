@@ -8,6 +8,7 @@ router.get('/', async (req, res) => {
   try {
     const reservations = await Reservation.find()
       .populate('pack', 'name price features')
+      .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployer', 'username fullName')
       .sort({ date: -1, createdAt: -1 });
     res.json(reservations);
@@ -22,6 +23,7 @@ router.get('/:id', async (req, res) => {
   try {
     const reservation = await Reservation.findById(req.params.id)
       .populate('pack', 'name price features')
+      .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployer', 'username fullName');
     
     if (!reservation) {
@@ -45,6 +47,7 @@ router.post('/', async (req, res) => {
       date,
       period,
       pack,
+      typePhotographie,
       teamPreference,
       assignedEmployer,
       invoice,
@@ -77,6 +80,7 @@ router.post('/', async (req, res) => {
       date,
       period,
       pack,
+      typePhotographie,
       teamPreference,
       assignedEmployer,
       invoice: calculatedInvoice,
@@ -88,6 +92,7 @@ router.post('/', async (req, res) => {
     // Populate the saved reservation
     const populatedReservation = await Reservation.findById(savedReservation._id)
       .populate('pack', 'name price features')
+      .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployer', 'username fullName');
     
     res.status(201).json(populatedReservation);

@@ -30,8 +30,8 @@ const reservationSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Reservation period is required'],
     enum: {
-      values: ['morning', 'afternoon', 'evening'],
-      message: 'Period must be morning, afternoon, or evening'
+      values: ['morning', 'evening'],
+      message: 'Period must be morning or evening'
     }
   },
 
@@ -40,6 +40,13 @@ const reservationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Pack',
     required: [true, 'Pack is required']
+  },
+
+  // Photography Type
+  typePhotographie: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TypePhotographie',
+    required: [true, 'Photography type is required']
   },
 
   // Assigned Team
