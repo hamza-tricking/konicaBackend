@@ -49,7 +49,7 @@ router.post('/', async (req, res) => {
       pack,
       typePhotographie,
       teamPreference,
-      assignedEmployer,
+      assignedEmployers,
       invoice,
       notes
     } = req.body;
@@ -65,15 +65,12 @@ router.post('/', async (req, res) => {
       packPrice: packDetails.price,
       additionalCharges: invoice?.additionalCharges || 0,
       discount: invoice?.discount || 0,
+      totalPrice: packDetails.price + (invoice?.additionalCharges || 0) - (invoice?.discount || 0),
       paidAmount: invoice?.paidAmount || 0,
-      totalPrice: 0,
-      remainingAmount: 0
+      remainingAmount: packDetails.price + (invoice?.additionalCharges || 0) - (invoice?.discount || 0) - (invoice?.paidAmount || 0)
     };
 
-    calculatedInvoice.totalPrice = calculatedInvoice.packPrice + calculatedInvoice.additionalCharges - calculatedInvoice.discount;
-    calculatedInvoice.remainingAmount = calculatedInvoice.totalPrice - calculatedInvoice.paidAmount;
-
-    const newReservation = new Reservation({
+    const reservation = new Reservation({
       customerName,
       customerPhone,
       customerEmail,
@@ -82,18 +79,18 @@ router.post('/', async (req, res) => {
       pack,
       typePhotographie,
       teamPreference,
-      assignedEmployer,
-      invoice: calculatedInvoice,
+      assignedEmployers: assignedEmployers || [],
+      invoice: invoice || calculatedInvoice,
       notes
     });
 
-    const savedReservation = await newReservation.save();
+    const savedReservation = await reservation.save();
     
-    // Populate the saved reservation
+    // Populate the saved reservation with related data
     const populatedReservation = await Reservation.findById(savedReservation._id)
       .populate('pack', 'name price features')
       .populate('typePhotographie', 'name description photo')
-      .populate('assignedEmployer', 'username fullName');
+      .populate('assignedEmployers', 'username fullName');
     
     res.status(201).json(populatedReservation);
   } catch (error) {
@@ -134,7 +131,8 @@ router.patch('/:id/status', async (req, res) => {
       { status },
       { new: true, runValidators: true }
     ).populate('pack', 'name price features')
-     .populate('assignedEmployer', 'username fullName');
+     .populate('typePhotographie', 'name description photo')
+     .populate('assignedEmployers', 'username fullName');
     
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });
@@ -154,10 +152,11 @@ router.patch('/:id/assign-employer', async (req, res) => {
     
     const updatedReservation = await Reservation.findByIdAndUpdate(
       req.params.id,
-      { assignedEmployer: employerId },
+      { $push: { assignedEmployers: employerId } },
       { new: true, runValidators: true }
     ).populate('pack', 'name price features')
-     .populate('assignedEmployer', 'username fullName');
+     .populate('typePhotographie', 'name description photo')
+     .populate('assignedEmployers', 'username fullName');
     
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });
@@ -185,7 +184,8 @@ router.patch('/:id/invoice', async (req, res) => {
       },
       { new: true, runValidators: true }
     ).populate('pack', 'name price features')
-     .populate('assignedEmployer', 'username fullName');
+     .populate('typePhotographie', 'name description photo')
+     .populate('assignedEmployers', 'username fullName');
     
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });
@@ -240,7 +240,7 @@ router.get('/date-range/:startDate/:endDate', async (req, res) => {
       }
     })
       .populate('pack', 'name price features')
-      .populate('assignedEmployer', 'username fullName')
+      .populate('assignedEmployers', 'username fullName')
       .sort({ date: 1 });
     
     res.json(reservations);
