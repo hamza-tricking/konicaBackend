@@ -99,6 +99,26 @@ const reservationSchema = new mongoose.Schema({
     }
   },
 
+  // Additional Items
+  additionalItems: [{
+    name: {
+      type: String,
+      required: [true, 'Additional item name is required'],
+      trim: true,
+      maxlength: [100, 'Additional item name cannot exceed 100 characters']
+    },
+    price: {
+      type: Number,
+      required: [true, 'Additional item price is required'],
+      min: [0, 'Additional item price cannot be negative']
+    },
+    quantity: {
+      type: Number,
+      required: [true, 'Additional item quantity is required'],
+      min: [1, 'Additional item quantity must be at least 1']
+    }
+  }],
+
   // Status and Notes
   status: {
     type: String,
@@ -172,8 +192,13 @@ reservationSchema.virtual('statusArabic').get(function() {
 
 // Pre-save middleware to calculate total price
 reservationSchema.pre('save', function(next) {
-  if (this.isModified('invoice.packPrice') || this.isModified('invoice.additionalCharges') || this.isModified('invoice.discount')) {
-    this.invoice.totalPrice = this.invoice.packPrice + this.invoice.additionalCharges - this.invoice.discount;
+  if (this.isModified('invoice.packPrice') || this.isModified('invoice.additionalCharges') || this.isModified('invoice.discount') || this.isModified('additionalItems')) {
+    // Calculate additional items total
+    const additionalItemsTotal = this.additionalItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+    
+    this.invoice.totalPrice = this.invoice.packPrice + this.invoice.additionalCharges + additionalItemsTotal - this.invoice.discount;
     this.invoice.remainingAmount = this.invoice.totalPrice - this.invoice.paidAmount;
   }
   next();
