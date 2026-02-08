@@ -54,6 +54,18 @@ router.post('/', async (req, res) => {
       notes
     } = req.body;
 
+    // Check if there's already a reservation for the same date and period
+    const existingReservation = await Reservation.findOne({
+      date: new Date(date),
+      period: period
+    });
+
+    if (existingReservation) {
+      return res.status(400).json({ 
+        message: 'يوجد بالفعل حجز في هذا التاريخ والفترة. الرجاء اختيار تاريخ أو فترة أخرى.' 
+      });
+    }
+
     // Get pack details for pricing
     const packDetails = await Pack.findById(pack);
     if (!packDetails) {
@@ -102,6 +114,23 @@ router.post('/', async (req, res) => {
 // Update reservation
 router.put('/:id', async (req, res) => {
   try {
+    const { date, period } = req.body;
+    
+    // Check if there's already a reservation for the same date and period (excluding current reservation)
+    if (date && period) {
+      const existingReservation = await Reservation.findOne({
+        _id: { $ne: req.params.id }, // Exclude current reservation
+        date: new Date(date),
+        period: period
+      });
+
+      if (existingReservation) {
+        return res.status(400).json({ 
+          message: 'يوجد بالفعل حجز في هذا التاريخ والفترة. الرجاء اختيار تاريخ أو فترة أخرى.' 
+        });
+      }
+    }
+
     const updatedReservation = await Reservation.findByIdAndUpdate(
       req.params.id,
       req.body,
