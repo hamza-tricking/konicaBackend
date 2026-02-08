@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
     const reservations = await Reservation.find()
       .populate('pack', 'name price features')
       .populate('typePhotographie', 'name description photo')
-      .populate('assignedEmployer', 'username fullName')
+      .populate('assignedEmployers', 'username fullName')
       .sort({ date: -1, createdAt: -1 });
     res.json(reservations);
   } catch (error) {
@@ -24,7 +24,7 @@ router.get('/:id', async (req, res) => {
     const reservation = await Reservation.findById(req.params.id)
       .populate('pack', 'name price features')
       .populate('typePhotographie', 'name description photo')
-      .populate('assignedEmployer', 'username fullName');
+      .populate('assignedEmployers', 'username fullName');
     
     if (!reservation) {
       return res.status(404).json({ message: 'Reservation not found' });
@@ -110,7 +110,8 @@ router.put('/:id', async (req, res) => {
       req.body,
       { new: true, runValidators: true }
     ).populate('pack', 'name price features')
-     .populate('assignedEmployer', 'username fullName');
+     .populate('typePhotographie', 'name description photo')
+     .populate('assignedEmployers', 'username fullName');
     
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });

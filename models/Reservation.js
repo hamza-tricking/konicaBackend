@@ -59,11 +59,11 @@ const reservationSchema = new mongoose.Schema({
     }
   },
 
-  // Assigned Employer
-  assignedEmployer: {
+  // Assigned Employers (Multiple)
+  assignedEmployers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  },
+  }],
 
   // Invoice Details
   invoice: {
@@ -151,7 +151,7 @@ const reservationSchema = new mongoose.Schema({
 // Indexes for better query performance
 reservationSchema.index({ date: 1 });
 reservationSchema.index({ status: 1 });
-reservationSchema.index({ assignedEmployer: 1 });
+reservationSchema.index({ assignedEmployers: 1 });
 reservationSchema.index({ pack: 1 });
 reservationSchema.index({ customerPhone: 1 });
 
