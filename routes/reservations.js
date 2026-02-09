@@ -54,10 +54,11 @@ router.post('/', async (req, res) => {
       notes
     } = req.body;
 
-    // Check if there's already a reservation for the same date and period
+    // Check if there's already a reservation for the same date and period (excluding cancelled ones)
     const existingReservation = await Reservation.findOne({
       date: new Date(date),
-      period: period
+      period: period,
+      status: { $ne: 'cancelled' } // Exclude cancelled reservations
     });
 
     if (existingReservation) {
