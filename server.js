@@ -40,7 +40,13 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'https://dmtart.pro/konica'],
+  origin: [
+    'http://localhost:3000', 
+    'http://127.0.0.1:3000', 
+    'https://dmtart.pro/konica',
+    'https://konica-beta.vercel.app',
+    'https://konica-1geua1bvw-hamza-trickings-projects.vercel.app'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
