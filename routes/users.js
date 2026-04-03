@@ -1,5 +1,6 @@
 const express = require('express');
 const User = require('../models/User');
+const { protect, admin } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all employers
@@ -17,7 +18,7 @@ router.get('/employers', async (req, res) => {
 });
 
 // Get all users (admin only)
-router.get('/', async (req, res) => {
+router.get('/', protect, admin, async (req, res) => {
   try {
     const users = await User.find({})
       .select('-password')
@@ -31,7 +32,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get user by ID
-router.get('/:id', async (req, res) => {
+router.get('/:id', protect, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
     
@@ -47,13 +48,13 @@ router.get('/:id', async (req, res) => {
 });
 
 // Update user
-router.put('/:id', async (req, res) => {
+router.put('/:id', protect, async (req, res) => {
   try {
-    const { fullName, profilePhoto } = req.body;
+    const { fullName, profilePhoto, role } = req.body;
     
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      { fullName, profilePhoto },
+      { fullName, profilePhoto, role },
       { new: true, runValidators: true }
     ).select('-password');
     
@@ -69,7 +70,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete user
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     
