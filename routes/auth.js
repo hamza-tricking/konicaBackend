@@ -2,9 +2,10 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-// Direct JWT secret
-const JWT_SECRET = 'konica_jwt_2024_secure_random_secret_key_abcdef123456789';
+// Use environment variable for JWT_SECRET with fallback
+const JWT_SECRET = process.env.JWT_SECRET || 'konica_jwt_secret_2024_hamza_tricks_secure_key_!@#$%^&*()';
 
 const router = express.Router();
 
