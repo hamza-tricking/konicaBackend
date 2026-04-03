@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
-const reservationSchema = new mongoose.Schema({
-  // Customer Information
+const orderSchema = new mongoose.Schema({
+  // Customer Information (same as reservation)
   customerName: {
     type: String,
     required: [true, 'Customer name is required'],
@@ -12,7 +12,13 @@ const reservationSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Customer phone is required'],
     trim: true,
-    maxlength: [20, 'Phone number cannot exceed 20 characters']
+    validate: {
+      validator: function(v) {
+        // Support Moroccan and international phone formats
+        return /^(\+212|0)?[6-7]\d{8}$/.test(v) || /^\+?\d{10,15}$/.test(v);
+      },
+      message: 'Please enter a valid phone number'
+    }
   },
   customerEmail: {
     type: String,
@@ -21,57 +27,76 @@ const reservationSchema = new mongoose.Schema({
     match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
   },
 
-  // Wedding Information
+  // Wedding Information (same as reservation)
   location: {
     type: String,
+    required: [true, 'Location is required'],
     trim: true,
+    minlength: [3, 'Location must be at least 3 characters'],
     maxlength: [200, 'Location cannot exceed 200 characters']
   },
   groomName: {
     type: String,
+    required: [true, 'Groom name is required'],
     trim: true,
-    maxlength: [100, 'Groom name cannot exceed 100 characters']
+    minlength: [2, 'Groom name must be at least 2 characters'],
+    maxlength: [100, 'Groom name cannot exceed 100 characters'],
+    match: [/^[\u0600-\u06FFa-zA-Z\s]+$/, 'Groom name can only contain letters and spaces']
   },
   brideName: {
     type: String,
+    required: [true, 'Bride name is required'],
     trim: true,
-    maxlength: [100, 'Bride name cannot exceed 100 characters']
+    minlength: [2, 'Bride name must be at least 2 characters'],
+    maxlength: [100, 'Bride name cannot exceed 100 characters'],
+    match: [/^[\u0600-\u06FFa-zA-Z\s]+$/, 'Bride name can only contain letters and spaces']
   },
   hallName: {
     type: String,
+    required: [true, 'Hall name is required'],
     trim: true,
+    minlength: [3, 'Hall name must be at least 3 characters'],
     maxlength: [200, 'Hall name cannot exceed 200 characters']
   },
 
-  // Reservation Details
+  // Reservation Details (same as reservation)
   date: {
     type: Date,
-    required: [true, 'Reservation date is required']
+    required: [true, 'Order date is required'],
+    validate: {
+      validator: function(v) {
+        // Date must be today or in the future
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return v >= today;
+      },
+      message: 'Order date must be today or in the future'
+    }
   },
   period: {
     type: String,
-    required: [true, 'Reservation period is required'],
+    required: [true, 'Order period is required'],
     enum: {
       values: ['morning', 'evening'],
       message: 'Period must be morning or evening'
     }
   },
 
-  // Related Pack
+  // Related Pack (same as reservation)
   pack: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Pack',
     required: [true, 'Pack is required']
   },
 
-  // Photography Type
+  // Photography Type (same as reservation)
   typePhotographie: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'TypePhotographie',
     required: [true, 'Photography type is required']
   },
 
-  // Assigned Team
+  // Team Preference (same as reservation)
   teamPreference: {
     type: String,
     required: [true, 'Team preference is required'],
@@ -81,13 +106,27 @@ const reservationSchema = new mongoose.Schema({
     }
   },
 
-  // Assigned Employers (Multiple)
-  assignedEmployers: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+  // Additional Items (same as reservation)
+  additionalItems: [{
+    name: {
+      type: String,
+      required: [true, 'Additional item name is required'],
+      trim: true,
+      maxlength: [100, 'Additional item name cannot exceed 100 characters']
+    },
+    price: {
+      type: Number,
+      required: [true, 'Additional item price is required'],
+      min: [0, 'Additional item price cannot be negative']
+    },
+    quantity: {
+      type: Number,
+      required: [true, 'Additional item quantity is required'],
+      min: [1, 'Additional item quantity must be at least 1']
+    }
   }],
 
-  // Invoice Details
+  // Invoice Details (same as reservation)
   invoice: {
     packPrice: {
       type: Number,
@@ -121,36 +160,23 @@ const reservationSchema = new mongoose.Schema({
     }
   },
 
-  // Additional Items
-  additionalItems: [{
-    name: {
-      type: String,
-      required: [true, 'Additional item name is required'],
-      trim: true,
-      maxlength: [100, 'Additional item name cannot exceed 100 characters']
-    },
-    price: {
-      type: Number,
-      required: [true, 'Additional item price is required'],
-      min: [0, 'Additional item price cannot be negative']
-    },
-    quantity: {
-      type: Number,
-      required: [true, 'Additional item quantity is required'],
-      min: [1, 'Additional item quantity must be at least 1']
-    }
-  }],
-
-  // Status and Notes
-  status: {
+  // Order-specific fields
+  messageOfClient: [{
     type: String,
-    required: [true, 'Status is required'],
+    trim: true,
+    maxlength: [500, 'Message cannot exceed 500 characters']
+  }],
+  
+  state: {
+    type: String,
     enum: {
-      values: ['pending', 'confirmed', 'completed', 'cancelled'],
-      message: 'Status must be pending, confirmed, completed, or cancelled'
+      values: ['pending', 'accepted', 'rejected'],
+      message: 'State must be pending, accepted, or rejected'
     },
     default: 'pending'
   },
+
+  // Notes (same as reservation)
   notes: {
     type: String,
     trim: true,
@@ -171,19 +197,18 @@ const reservationSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-reservationSchema.index({ date: 1 });
-reservationSchema.index({ status: 1 });
-reservationSchema.index({ assignedEmployers: 1 });
-reservationSchema.index({ pack: 1 });
-reservationSchema.index({ customerPhone: 1 });
+orderSchema.index({ date: 1 });
+orderSchema.index({ state: 1 });
+orderSchema.index({ pack: 1 });
+orderSchema.index({ customerPhone: 1 });
 
 // Virtual for formatted date
-reservationSchema.virtual('formattedDate').get(function() {
+orderSchema.virtual('formattedDate').get(function() {
   return this.date.toISOString().split('T')[0];
 });
 
 // Virtual for period in Arabic
-reservationSchema.virtual('periodArabic').get(function() {
+orderSchema.virtual('periodArabic').get(function() {
   const periods = {
     morning: 'صباح',
     evening: 'مساء'
@@ -192,7 +217,7 @@ reservationSchema.virtual('periodArabic').get(function() {
 });
 
 // Virtual for team preference in Arabic
-reservationSchema.virtual('teamPreferenceArabic').get(function() {
+orderSchema.virtual('teamPreferenceArabic').get(function() {
   const teams = {
     females: 'فريق نسائي',
     males: 'فريق رجالي',
@@ -201,19 +226,18 @@ reservationSchema.virtual('teamPreferenceArabic').get(function() {
   return teams[this.teamPreference] || this.teamPreference;
 });
 
-// Virtual for status in Arabic
-reservationSchema.virtual('statusArabic').get(function() {
-  const statuses = {
+// Virtual for state in Arabic
+orderSchema.virtual('stateArabic').get(function() {
+  const states = {
     pending: 'في الانتظار',
-    confirmed: 'مؤكد',
-    completed: 'مكتمل',
-    cancelled: 'ملغي'
+    accepted: 'مقبول',
+    rejected: 'مرفوض'
   };
-  return statuses[this.status] || this.status;
+  return states[this.state] || this.state;
 });
 
 // Pre-save middleware to calculate total price
-reservationSchema.pre('save', function(next) {
+orderSchema.pre('save', function(next) {
   if (this.isModified('invoice.packPrice') || this.isModified('invoice.additionalCharges') || this.isModified('invoice.discount') || this.isModified('additionalItems')) {
     // Calculate additional items total
     const additionalItemsTotal = this.additionalItems.reduce((total, item) => {
@@ -226,4 +250,4 @@ reservationSchema.pre('save', function(next) {
   next();
 });
 
-module.exports = mongoose.model('Reservation', reservationSchema);
+module.exports = mongoose.model('Order', orderSchema);
