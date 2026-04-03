@@ -50,11 +50,11 @@ router.get('/:id', protect, async (req, res) => {
 // Update user
 router.put('/:id', protect, async (req, res) => {
   try {
-    const { fullName, profilePhoto, role } = req.body;
+    const { username, fullName, profilePhoto, role } = req.body;
     
     const updatedUser = await User.findByIdAndUpdate(
       req.params.id,
-      { fullName, profilePhoto, role },
+      { username, fullName, profilePhoto, role },
       { new: true, runValidators: true }
     ).select('-password');
     
