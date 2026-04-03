@@ -1,6 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+require('dotenv').config();
+
+// Debug: Check if JWT_SECRET is loaded
+console.log('JWT_SECRET loaded:', process.env.JWT_SECRET ? '✅ Yes' : '❌ No');
 
 // Direct MongoDB URI
 const MONGODB_URI = 'mongodb+srv://hamzatricks:hamzatricks@cluster0.sjxud.mongodb.net/konica';
