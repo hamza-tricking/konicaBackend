@@ -30,14 +30,12 @@ const orderSchema = new mongoose.Schema({
   // Wedding Information (same as reservation)
   location: {
     type: String,
-    required: [true, 'Location is required'],
     trim: true,
     minlength: [3, 'Location must be at least 3 characters'],
     maxlength: [200, 'Location cannot exceed 200 characters']
   },
   groomName: {
     type: String,
-    required: [true, 'Groom name is required'],
     trim: true,
     minlength: [2, 'Groom name must be at least 2 characters'],
     maxlength: [100, 'Groom name cannot exceed 100 characters'],
@@ -45,7 +43,6 @@ const orderSchema = new mongoose.Schema({
   },
   brideName: {
     type: String,
-    required: [true, 'Bride name is required'],
     trim: true,
     minlength: [2, 'Bride name must be at least 2 characters'],
     maxlength: [100, 'Bride name cannot exceed 100 characters'],
@@ -53,7 +50,6 @@ const orderSchema = new mongoose.Schema({
   },
   hallName: {
     type: String,
-    required: [true, 'Hall name is required'],
     trim: true,
     minlength: [3, 'Hall name must be at least 3 characters'],
     maxlength: [200, 'Hall name cannot exceed 200 characters']

@@ -38,16 +38,21 @@ router.get('/:id', async (req, res) => {
 // POST /api/extra-services - Create a new extra service
 router.post('/', async (req, res) => {
   try {
-    const { name, description, photo } = req.body;
+    const { name, description, photo, price } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: 'Service name is required' });
     }
 
+    if (price === undefined || price === null) {
+      return res.status(400).json({ message: 'Price is required' });
+    }
+
     const extraService = new ExtraService({
       name: name.trim(),
       description: description ? description.trim() : '',
-      photo: photo || null
+      photo: photo || null,
+      price: parseFloat(price)
     });
 
     const savedExtraService = await extraService.save();
@@ -60,7 +65,7 @@ router.post('/', async (req, res) => {
 // PUT /api/extra-services/:id - Update an extra service
 router.put('/:id', async (req, res) => {
   try {
-    const { name, description, photo } = req.body;
+    const { name, description, photo, price } = req.body;
 
     const extraService = await ExtraService.findById(req.params.id);
     if (!extraService) {
@@ -70,6 +75,7 @@ router.put('/:id', async (req, res) => {
     if (name) extraService.name = name.trim();
     if (description !== undefined) extraService.description = description.trim();
     if (photo !== undefined) extraService.photo = photo;
+    if (price !== undefined && price !== null) extraService.price = parseFloat(price);
 
     const updatedExtraService = await extraService.save();
     res.json(updatedExtraService);

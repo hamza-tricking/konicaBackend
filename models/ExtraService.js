@@ -16,6 +16,11 @@ const extraServiceSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  price: {
+    type: Number,
+    required: [true, 'Price is required'],
+    min: [0, 'Price cannot be negative']
+  },
   isActive: {
     type: Boolean,
     default: true
