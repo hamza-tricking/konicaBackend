@@ -78,6 +78,15 @@ router.post('/', async (req, res) => {
   try {
     const orderData = req.body;
     
+    console.log('=== ORDER SUBMISSION DEBUG ===');
+    console.log('Order data received:', JSON.stringify(orderData, null, 2));
+    console.log('Pack ID:', orderData.pack);
+    console.log('TypePhotographie ID:', orderData.typePhotographie);
+    console.log('Date:', orderData.date);
+    console.log('Additional Items:', orderData.additionalItems);
+    console.log('Invoice:', orderData.invoice);
+    console.log('============================');
+    
     // Check date availability first
     const availability = await checkDateAvailability(orderData.date, orderData.period);
     
@@ -107,9 +116,16 @@ router.post('/', async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating order:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    console.error('Order data received:', req.body);
     res.status(500).json({
       success: false,
-      message: 'حدث خطأ أثناء إنشاء الطلب'
+      message: 'حدث خطأ أثناء إنشاء الطلب',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
