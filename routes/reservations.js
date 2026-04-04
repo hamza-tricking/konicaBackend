@@ -329,4 +329,24 @@ router.post('/mark-past-completed', async (req, res) => {
   }
 });
 
+// Get reservations for a specific employer
+router.get('/employer/:employerId', async (req, res) => {
+  try {
+    const { employerId } = req.params;
+    
+    const reservations = await Reservation.find({
+      assignedEmployers: employerId
+    })
+      .populate('pack', 'name price features')
+      .populate('typePhotographie', 'name description photo')
+      .populate('assignedEmployers', 'username fullName')
+      .sort({ date: -1, createdAt: -1 });
+    
+    res.json(reservations);
+  } catch (error) {
+    console.error('Error fetching employer reservations:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
