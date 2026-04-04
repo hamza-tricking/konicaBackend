@@ -244,20 +244,6 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Get reservations by employer
-router.get('/employer/:employerId', async (req, res) => {
-  try {
-    const reservations = await Reservation.find({ assignedEmployer: req.params.employerId })
-      .populate('pack', 'name price features')
-      .sort({ date: -1 });
-    
-    res.json(reservations);
-  } catch (error) {
-    console.error('Error fetching employer reservations:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
 // Get reservations by date range
 router.get('/date-range/:startDate/:endDate', async (req, res) => {
   try {
@@ -335,6 +321,21 @@ router.get('/employer/:employerId', async (req, res) => {
     const { employerId } = req.params;
     
     console.log('Fetching reservations for employer:', employerId);
+    
+    // First, let's see all reservations to debug
+    const allReservations = await Reservation.find({})
+      .populate('pack', 'name price features')
+      .populate('typePhotographie', 'name description photo')
+      .populate('assignedEmployers', 'username fullName')
+      .sort({ date: -1, createdAt: -1 });
+    
+    console.log('Total reservations in DB:', allReservations.length);
+    console.log('All reservations with assignedEmployers:', allReservations.map(r => ({
+      id: r._id,
+      customer: r.customerName,
+      assignedEmployers: r.assignedEmployers,
+      assignedEmployersCount: r.assignedEmployers ? r.assignedEmployers.length : 0
+    })));
     
     const reservations = await Reservation.find({
       assignedEmployers: employerId
