@@ -99,8 +99,8 @@ router.post('/', async (req, res) => {
     
     // Create new order
     const newOrder = new Order({
-      ...orderData,
-      state: 'pending' // Default state
+      ...orderData
+      // Remove explicit state setting to use model default ('accepted')
     });
     
     const savedOrder = await newOrder.save();
