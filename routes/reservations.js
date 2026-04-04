@@ -334,6 +334,8 @@ router.get('/employer/:employerId', async (req, res) => {
   try {
     const { employerId } = req.params;
     
+    console.log('Fetching reservations for employer:', employerId);
+    
     const reservations = await Reservation.find({
       assignedEmployers: employerId
     })
@@ -341,6 +343,13 @@ router.get('/employer/:employerId', async (req, res) => {
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName')
       .sort({ date: -1, createdAt: -1 });
+    
+    console.log('Found reservations:', reservations.length);
+    console.log('Reservations:', reservations.map(r => ({
+      id: r._id,
+      customer: r.customerName,
+      assignedEmployers: r.assignedEmployers
+    })));
     
     res.json(reservations);
   } catch (error) {
