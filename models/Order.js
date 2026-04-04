@@ -169,7 +169,7 @@ const orderSchema = new mongoose.Schema({
       values: ['pending', 'accepted', 'rejected'],
       message: 'State must be pending, accepted, or rejected'
     },
-    default: 'accepted'
+    default: 'pending'
   },
 
   // Notes (same as reservation)

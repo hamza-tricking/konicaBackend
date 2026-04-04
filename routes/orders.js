@@ -217,4 +217,29 @@ router.put('/:id/state', protect, employer, async (req, res) => {
   }
 });
 
+// Admin route to delete order (protected)
+router.delete('/:id', protect, admin, async (req, res) => {
+  try {
+    const order = await Order.findByIdAndDelete(req.params.id);
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'الطلب غير موجود'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'تم حذف الطلب بنجاح'
+    });
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    res.status(500).json({
+      success: false,
+      message: 'حدث خطأ أثناء حذف الطلب'
+    });
+  }
+});
+
 module.exports = router;
