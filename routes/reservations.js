@@ -280,4 +280,53 @@ router.get('/date-range/:startDate/:endDate', async (req, res) => {
   }
 });
 
+// Mark all past reservations as completed
+router.post('/mark-past-completed', async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+    
+    // Find all reservations with dates before today and status not already completed
+    const pastReservations = await Reservation.find({
+      date: { $lt: today },
+      status: { $ne: 'completed' },
+      status: { $ne: 'cancelled' } // Exclude cancelled reservations
+    });
+
+    if (pastReservations.length === 0) {
+      return res.json({
+        message: 'لا توجد حجوزات ماضية تحتاج للتحديث',
+        updatedCount: 0
+      });
+    }
+
+    // Update all past reservations to completed status
+    const updatePromises = pastReservations.map(async (reservation) => {
+      // Mark as completed and set payment as fully paid
+      return Reservation.findByIdAndUpdate(
+        reservation._id,
+        { 
+          status: 'completed',
+          'invoice.paidAmount': reservation.invoice.totalPrice,
+          'invoice.remainingAmount': 0
+        },
+        { new: true }
+      );
+    });
+
+    await Promise.all(updatePromises);
+
+    res.json({
+      message: `تم تحديث ${pastReservations.length} حجز إلى حالة مكتمل`,
+      updatedCount: pastReservations.length
+    });
+  } catch (error) {
+    console.error('Error marking past reservations as completed:', error);
+    res.status(500).json({ 
+      message: 'حدث خطأ أثناء تحديث الحجوزات الماضية',
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;
