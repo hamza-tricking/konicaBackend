@@ -27,7 +27,6 @@ const typePhotographieSchema = new mongoose.Schema({
 });
 
 // Indexes for better query performance
-typePhotographieSchema.index({ name: 1 });
 typePhotographieSchema.index({ isActive: 1 });
 
 // Virtual for formatted name

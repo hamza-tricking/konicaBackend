@@ -214,16 +214,75 @@ reservationSchema.virtual('statusArabic').get(function() {
 
 // Pre-save middleware to calculate total price
 reservationSchema.pre('save', function(next) {
-  if (this.isModified('invoice.packPrice') || this.isModified('invoice.additionalCharges') || this.isModified('invoice.discount') || this.isModified('additionalItems')) {
-    // Calculate additional items total
-    const additionalItemsTotal = this.additionalItems.reduce((total, item) => {
-      return total + (item.price * item.quantity);
-    }, 0);
-    
-    this.invoice.totalPrice = this.invoice.packPrice + this.invoice.additionalCharges + additionalItemsTotal - this.invoice.discount;
-    this.invoice.remainingAmount = this.invoice.totalPrice - this.invoice.paidAmount;
+  // Ensure all invoice fields exist
+  if (!this.invoice) {
+    this.invoice = {};
   }
+  
+  // Set defaults
+  this.invoice.additionalCharges = this.invoice.additionalCharges || 0;
+  this.invoice.discount = this.invoice.discount || 0;
+  this.invoice.paidAmount = this.invoice.paidAmount || 0;
+  
+  // Calculate additional items total
+  const additionalItemsTotal = this.additionalItems.reduce((total, item) => {
+    return total + (item.price * item.quantity);
+  }, 0);
+  
+  // Calculate total price
+  this.invoice.totalPrice = this.invoice.packPrice + this.invoice.additionalCharges + additionalItemsTotal - this.invoice.discount;
+  this.invoice.remainingAmount = this.invoice.totalPrice - this.invoice.paidAmount;
+  
+  console.log('Reservation total calculation:', {
+    packPrice: this.invoice.packPrice,
+    additionalCharges: this.invoice.additionalCharges,
+    discount: this.invoice.discount,
+    additionalItemsTotal,
+    totalPrice: this.invoice.totalPrice,
+    paidAmount: this.invoice.paidAmount,
+    remainingAmount: this.invoice.remainingAmount
+  });
+  
   next();
+});
+
+// Pre-update middleware to handle updates
+reservationSchema.pre(['updateOne', 'updateMany', 'findOneAndUpdate'], function(next) {
+  const update = this.getUpdate();
+  
+  if (update.invoice) {
+    // Ensure all invoice fields exist in the update
+    update.invoice.additionalCharges = update.invoice.additionalCharges || 0;
+    update.invoice.discount = update.invoice.discount || 0;
+    update.invoice.paidAmount = update.invoice.paidAmount || 0;
+    
+    // Get the current document to calculate additional items
+    this.model.findOne(this.getQuery()).then((doc) => {
+      if (doc) {
+        const additionalItemsTotal = (doc.additionalItems || []).reduce((total, item) => {
+          return total + (item.price * item.quantity);
+        }, 0);
+        
+        // Calculate total price
+        update.invoice.totalPrice = update.invoice.packPrice + update.invoice.additionalCharges + additionalItemsTotal - update.invoice.discount;
+        update.invoice.remainingAmount = update.invoice.totalPrice - update.invoice.paidAmount;
+        
+        console.log('Reservation update total calculation:', {
+          packPrice: update.invoice.packPrice,
+          additionalCharges: update.invoice.additionalCharges,
+          discount: update.invoice.discount,
+          additionalItemsTotal,
+          totalPrice: update.invoice.totalPrice,
+          paidAmount: update.invoice.paidAmount,
+          remainingAmount: update.invoice.remainingAmount
+        });
+      }
+      
+      next();
+    }).catch(next);
+  } else {
+    next();
+  }
 });
 
 module.exports = mongoose.model('Reservation', reservationSchema);
