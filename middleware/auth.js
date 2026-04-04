@@ -41,7 +41,7 @@ const admin = (req, res, next) => {
 
 // Employer middleware
 const employer = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'employer')) {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'employer' || req.user.role === 'sous admin')) {
     next();
   } else {
     res.status(403).json({ message: 'Not authorized as employer' });
