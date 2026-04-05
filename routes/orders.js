@@ -121,7 +121,7 @@ router.post('/', async (req, res) => {
         description: 'إنشاء طلب جديد',
         entityType: 'Order',
         entityId: savedOrder._id,
-        performedBy: null, // Public order - no user
+        performedBy: undefined, // Use undefined instead of null for optional field
         role: 'public',
         visibleTo: ['admin', 'sous admin'], // Admin and sous admin can see orders
         status: 'success',

@@ -114,7 +114,7 @@ router.post('/', async (req, res) => {
         description: 'إنشاء حجز جديد',
         entityType: 'Reservation',
         entityId: savedReservation._id,
-        performedBy: null, // Public reservation - no user
+        performedBy: undefined, // Use undefined instead of null for optional field
         role: 'public',
         visibleTo: ['admin', 'sous admin'], // Admin and sous admin can see reservations
         status: 'success',

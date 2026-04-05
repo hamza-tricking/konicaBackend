@@ -37,13 +37,13 @@ const historySchema = new mongoose.Schema({
   performedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false // Make optional for public requests
   },
 
   role: {
     type: String,
     required: true,
-    enum: ['admin', 'sous admin', 'employer', 'customer']
+    enum: ['admin', 'sous admin', 'employer', 'customer', 'public']
   },
 
   // من يرى هذا الإجراء
