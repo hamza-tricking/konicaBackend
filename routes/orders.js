@@ -75,12 +75,13 @@ router.get('/check-availability', async (req, res) => {
 });
 
 // Public route to submit new order
-router.post('/', historyMiddleware('ORDER_CREATE', 'Order'), async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const orderData = req.body;
     
     console.log('=== ORDER SUBMISSION DEBUG ===');
     console.log('Order data received:', JSON.stringify(orderData, null, 2));
+    console.log('User from request:', req.user);
     console.log('Pack ID:', orderData.pack);
     console.log('TypePhotographie ID:', orderData.typePhotographie);
     console.log('Date:', orderData.date);
@@ -105,6 +106,28 @@ router.post('/', historyMiddleware('ORDER_CREATE', 'Order'), async (req, res) =>
     });
     
     const savedOrder = await newOrder.save();
+    console.log('Order saved successfully:', savedOrder._id);
+    
+    // Create history entry manually since this is a public route
+    try {
+      const { logHistory } = require('../utils/historyLogger');
+      const historyEntry = await logHistory({
+        actionType: 'ORDER_CREATE',
+        description: 'إنشاء طلب جديد',
+        entityType: 'Order',
+        entityId: savedOrder._id,
+        performedBy: null, // Public order - no user
+        role: 'public',
+        visibleTo: ['admin', 'sous admin'], // Admin and sous admin can see orders
+        status: 'success',
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+      
+      console.log('History entry created successfully:', historyEntry._id);
+    } catch (historyError) {
+      console.error('Error creating history entry:', historyError);
+    }
     
     // Populate related data for response
     await savedOrder.populate('pack');

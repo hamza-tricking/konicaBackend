@@ -30,9 +30,21 @@ const historyMiddleware = (actionType, entityType) => {
     // الاستمرار للـ original handler
     res.on('finish', async () => {
       try {
+        console.log('=== HISTORY MIDDLEWARE DEBUG ===');
+        console.log('Request method:', req.method);
+        console.log('Request URL:', req.originalUrl);
+        console.log('User exists:', !!req.user);
+        console.log('User data:', req.user);
+        console.log('Response status:', res.statusCode);
+        console.log('Is success:', isSuccess);
+        console.log('Response data:', responseData);
+        console.log('==============================');
+        
         // التحقق من وجود مستخدم والإجراء المطلوب
         if (req.user && (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE' || req.method === 'PATCH')) {
           const entityId = req.params.id || (responseData && responseData._id) || (responseData && responseData.data && responseData.data._id);
+          
+          console.log('Entity ID found:', entityId);
           
           if (entityId) {
             // الحصول على visibleTo بشكل ديناميكي
@@ -50,6 +62,8 @@ const historyMiddleware = (actionType, entityType) => {
               ...getRequestInfo(req)
             };
 
+            console.log('History data to be saved:', historyData);
+
             // إضافة التغييرات إذا كان هناك update
             if (req.method === 'PUT' || req.method === 'PATCH') {
               historyData.changes = {
@@ -59,7 +73,12 @@ const historyMiddleware = (actionType, entityType) => {
             }
 
             await logHistory(historyData);
+            console.log('History logged successfully');
+          } else {
+            console.log('No entity ID found, skipping history logging');
           }
+        } else {
+          console.log('No user or not a relevant method, skipping history logging');
         }
       } catch (error) {
         console.error('History middleware error:', error);
