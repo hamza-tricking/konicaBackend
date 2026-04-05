@@ -86,8 +86,14 @@ router.get('/my-actions', protect, async (req, res) => {
 // Get history by role visibility
 router.get('/visible', protect, async (req, res) => {
   try {
+    console.log('📜 History API called - /api/history/visible');
+    console.log('👤 User:', req.user);
+    console.log('🔑 User Role:', req.user.role);
+    
     const { page = 1, limit = 50 } = req.query;
     const userRole = req.user.role;
+
+    console.log('📊 Query params:', { page, limit, userRole });
 
     const history = await History.find({
       $or: [
@@ -107,6 +113,9 @@ router.get('/visible', protect, async (req, res) => {
       ]
     });
 
+    console.log('📋 Found history items:', history.length);
+    console.log('📈 Total count:', total);
+
     res.json({
       history,
       totalPages: Math.ceil(total / limit),
@@ -114,7 +123,7 @@ router.get('/visible', protect, async (req, res) => {
       total
     });
   } catch (error) {
-    console.error('Error fetching visible history:', error);
+    console.error('❌ Error fetching visible history:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

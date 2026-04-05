@@ -6,10 +6,16 @@ const router = express.Router();
 // Get unread notifications for current user
 router.get('/unread', protect, async (req, res) => {
   try {
+    console.log('🔔 Notifications API called - /api/notifications/unread');
+    console.log('👤 User:', req.user);
+    console.log('🔑 User Role:', req.user.role);
+    
     const result = await NotificationService.getUnreadNotifications(req.user._id, req.user.role);
+    console.log('📋 Unread notifications result:', result);
+    
     res.json(result);
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    console.error('❌ Error fetching notifications:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -17,15 +23,20 @@ router.get('/unread', protect, async (req, res) => {
 // Mark notification as read
 router.patch('/:id/read', protect, async (req, res) => {
   try {
+    console.log('📝 Mark notification as read called:', req.params.id);
+    console.log('👤 User:', req.user);
+    
     const success = await NotificationService.markAsRead(req.params.id, req.user._id);
     
     if (success) {
+      console.log('✅ Notification marked as read successfully');
       res.json({ message: 'Notification marked as read' });
     } else {
+      console.log('❌ Notification not found');
       res.status(404).json({ message: 'Notification not found' });
     }
   } catch (error) {
-    console.error('Error marking notification as read:', error);
+    console.error('❌ Error marking notification as read:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -33,10 +44,16 @@ router.patch('/:id/read', protect, async (req, res) => {
 // Get notification count
 router.get('/count', protect, async (req, res) => {
   try {
+    console.log('🔢 Notification count API called - /api/notifications/count');
+    console.log('👤 User:', req.user);
+    console.log('🔑 User Role:', req.user.role);
+    
     const result = await NotificationService.getUnreadNotifications(req.user._id, req.user.role);
+    console.log('📊 Unread count:', result.count);
+    
     res.json({ count: result.count });
   } catch (error) {
-    console.error('Error fetching notification count:', error);
+    console.error('❌ Error fetching notification count:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
