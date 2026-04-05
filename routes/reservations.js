@@ -39,8 +39,13 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new reservation
-router.post('/', historyMiddleware('RESERVATION_CREATE', 'Reservation'), async (req, res) => {
+router.post('/', async (req, res) => {
   try {
+    console.log('=== RESERVATION POST REQUEST RECEIVED ===');
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.originalUrl);
+    console.log('User from request:', req.user);
+    
     const {
       customerName,
       customerPhone,
@@ -99,6 +104,28 @@ router.post('/', historyMiddleware('RESERVATION_CREATE', 'Reservation'), async (
     });
 
     const savedReservation = await reservation.save();
+    console.log('Reservation saved successfully:', savedReservation._id);
+    
+    // Create history entry manually since this is a public route
+    try {
+      const { logHistory } = require('../utils/historyLogger');
+      const historyEntry = await logHistory({
+        actionType: 'RESERVATION_CREATE',
+        description: 'إنشاء حجز جديد',
+        entityType: 'Reservation',
+        entityId: savedReservation._id,
+        performedBy: null, // Public reservation - no user
+        role: 'public',
+        visibleTo: ['admin', 'sous admin'], // Admin and sous admin can see reservations
+        status: 'success',
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+      
+      console.log('History entry created successfully:', historyEntry._id);
+    } catch (historyError) {
+      console.error('Error creating history entry:', historyError);
+    }
     
     // Populate the saved reservation with related data
     const populatedReservation = await Reservation.findById(savedReservation._id)
