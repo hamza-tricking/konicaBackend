@@ -74,6 +74,13 @@ app.use('/api/history', require('./routes/history'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.url} - ${new Date().toISOString()}`);
+  next();
+});
+
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`📡 API Base URL: http://localhost:${PORT}`);
 });
