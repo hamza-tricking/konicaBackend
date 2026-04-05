@@ -62,6 +62,12 @@ app.get('/', (req, res) => {
   res.json({ message: 'Konica Backend API is running...' });
 });
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`🌐 ${req.method} ${req.url} - ${new Date().toISOString()}`);
+  next();
+});
+
 // API routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
@@ -73,12 +79,6 @@ app.use('/api/extra-services', require('./routes/extraServices'));
 app.use('/api/history', require('./routes/history'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/dashboard', require('./routes/dashboard'));
-
-// Debug middleware to log all requests
-app.use((req, res, next) => {
-  console.log(`🌐 ${req.method} ${req.url} - ${new Date().toISOString()}`);
-  next();
-});
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
