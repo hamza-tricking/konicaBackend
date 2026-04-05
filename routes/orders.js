@@ -77,6 +77,11 @@ router.get('/check-availability', async (req, res) => {
 // Public route to submit new order
 router.post('/', async (req, res) => {
   try {
+    console.log('=== ORDER POST REQUEST RECEIVED ===');
+    console.log('Request method:', req.method);
+    console.log('Request URL:', req.originalUrl);
+    console.log('Request headers:', req.headers);
+    
     const orderData = req.body;
     
     console.log('=== ORDER SUBMISSION DEBUG ===');
