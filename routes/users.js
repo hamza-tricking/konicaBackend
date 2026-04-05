@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const { protect, admin } = require('../middleware/auth');
+const { historyMiddleware } = require('../middleware/historyMiddleware');
 const router = express.Router();
 
 // Get all employers
@@ -48,7 +49,7 @@ router.get('/:id', protect, async (req, res) => {
 });
 
 // Update user
-router.put('/:id', protect, async (req, res) => {
+router.put('/:id', protect, historyMiddleware('USER_UPDATE', 'User'), async (req, res) => {
   try {
     const { username, fullName, profilePhoto, role } = req.body;
     
@@ -70,7 +71,7 @@ router.put('/:id', protect, async (req, res) => {
 });
 
 // Delete user
-router.delete('/:id', protect, async (req, res) => {
+router.delete('/:id', protect, historyMiddleware('USER_DELETE', 'User'), async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
     

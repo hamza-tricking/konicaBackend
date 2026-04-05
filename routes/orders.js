@@ -3,6 +3,7 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Reservation = require('../models/Reservation');
 const { protect, admin, employer } = require('../middleware/auth');
+const { historyMiddleware } = require('../middleware/historyMiddleware');
 
 // Date checking function
 const checkDateAvailability = async (date, period) => {
@@ -74,7 +75,7 @@ router.get('/check-availability', async (req, res) => {
 });
 
 // Public route to submit new order
-router.post('/', async (req, res) => {
+router.post('/', historyMiddleware('ORDER_CREATE', 'Order'), async (req, res) => {
   try {
     const orderData = req.body;
     
@@ -179,7 +180,7 @@ router.get('/:id', protect, employer, async (req, res) => {
 });
 
 // Admin route to update order state (protected)
-router.put('/:id/state', protect, employer, async (req, res) => {
+router.put('/:id/state', protect, employer, historyMiddleware('ORDER_UPDATE', 'Order'), async (req, res) => {
   try {
     const { state } = req.body;
     
@@ -218,7 +219,7 @@ router.put('/:id/state', protect, employer, async (req, res) => {
 });
 
 // Admin route to delete order (protected)
-router.delete('/:id', protect, admin, async (req, res) => {
+router.delete('/:id', protect, admin, historyMiddleware('ORDER_REJECT', 'Order'), async (req, res) => {
   try {
     const order = await Order.findByIdAndDelete(req.params.id);
     

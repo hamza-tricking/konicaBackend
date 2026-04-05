@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const { historyMiddleware } = require('../middleware/historyMiddleware');
 require('dotenv').config();
 
 // Use environment variable for JWT_SECRET with fallback
@@ -19,7 +20,7 @@ const generateToken = (id) => {
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
-router.post('/register', async (req, res) => {
+router.post('/register', historyMiddleware('USER_REGISTER', 'User'), async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
@@ -55,7 +56,7 @@ router.post('/register', async (req, res) => {
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
-router.post('/login', async (req, res) => {
+router.post('/login', historyMiddleware('USER_LOGIN', 'User'), async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -86,7 +87,7 @@ router.post('/login', async (req, res) => {
 // @desc    Create admin user (for initial setup)
 // @route   POST /api/auth/create-admin
 // @access  Public (should be protected in production)
-router.post('/create-admin', async (req, res) => {
+router.post('/create-admin', historyMiddleware('USER_REGISTER', 'User'), async (req, res) => {
   try {
     const { username, password } = req.body;
 

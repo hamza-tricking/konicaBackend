@@ -70,6 +70,9 @@ app.use('/api/reservations', require('./routes/reservations'));
 app.use('/api/orders', require('./routes/orders'));
 app.use('/api/type-photographie', require('./routes/typePhotographie'));
 app.use('/api/extra-services', require('./routes/extraServices'));
+app.use('/api/history', require('./routes/history'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);

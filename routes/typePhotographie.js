@@ -1,5 +1,6 @@
 const express = require('express');
 const TypePhotographie = require('../models/TypePhotographie');
+const { historyMiddleware } = require('../middleware/historyMiddleware');
 const router = express.Router();
 
 // Get all photography types
@@ -30,7 +31,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new photography type
-router.post('/', async (req, res) => {
+router.post('/', historyMiddleware('SERVICE_CREATE', 'TypePhotographie'), async (req, res) => {
   try {
     const { name, description, photo } = req.body;
 
@@ -52,7 +53,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update photography type
-router.put('/:id', async (req, res) => {
+router.put('/:id', historyMiddleware('SERVICE_UPDATE', 'TypePhotographie'), async (req, res) => {
   try {
     const updatedType = await TypePhotographie.findByIdAndUpdate(
       req.params.id,
@@ -75,7 +76,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete photography type (soft delete)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', historyMiddleware('SERVICE_DELETE', 'TypePhotographie'), async (req, res) => {
   try {
     const deletedType = await TypePhotographie.findByIdAndUpdate(
       req.params.id,

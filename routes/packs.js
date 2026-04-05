@@ -1,5 +1,6 @@
 const express = require('express');
 const Pack = require('../models/Pack');
+const { historyMiddleware } = require('../middleware/historyMiddleware');
 const router = express.Router();
 
 // Get all packs
@@ -14,7 +15,7 @@ router.get('/', async (req, res) => {
 });
 
 // Add new pack
-router.post('/', async (req, res) => {
+router.post('/', historyMiddleware('PACK_CREATE', 'Pack'), async (req, res) => {
   try {
     const { name, description, price, features, photo } = req.body;
     
@@ -35,7 +36,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update pack
-router.put('/:id', async (req, res) => {
+router.put('/:id', historyMiddleware('PACK_UPDATE', 'Pack'), async (req, res) => {
   try {
     const { id } = req.params;
     const updatedPack = await Pack.findByIdAndUpdate(
@@ -56,7 +57,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete pack (soft delete)
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', historyMiddleware('PACK_DELETE', 'Pack'), async (req, res) => {
   try {
     const { id } = req.params;
     const deletedPack = await Pack.findByIdAndUpdate(

@@ -1,6 +1,7 @@
 const express = require('express');
 const Reservation = require('../models/Reservation');
 const Pack = require('../models/Pack');
+const { historyMiddleware } = require('../middleware/historyMiddleware');
 const router = express.Router();
 
 // Get all reservations with populated data
@@ -38,7 +39,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Create new reservation
-router.post('/', async (req, res) => {
+router.post('/', historyMiddleware('RESERVATION_CREATE', 'Reservation'), async (req, res) => {
   try {
     const {
       customerName,
@@ -113,7 +114,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update reservation
-router.put('/:id', async (req, res) => {
+router.put('/:id', historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
     const { date, period } = req.body;
     
@@ -152,7 +153,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Update reservation status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
     const { status } = req.body;
     
@@ -176,7 +177,7 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 // Assign employer to reservation
-router.patch('/:id/assign-employer', async (req, res) => {
+router.patch('/:id/assign-employer', historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
     const { employerId } = req.body;
     
@@ -200,7 +201,7 @@ router.patch('/:id/assign-employer', async (req, res) => {
 });
 
 // Update invoice details
-router.patch('/:id/invoice', async (req, res) => {
+router.patch('/:id/invoice', historyMiddleware('INVOICE_UPDATE', 'Reservation'), async (req, res) => {
   try {
     const { invoice } = req.body;
     
@@ -229,7 +230,7 @@ router.patch('/:id/invoice', async (req, res) => {
 });
 
 // Delete reservation
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', historyMiddleware('RESERVATION_CANCEL', 'Reservation'), async (req, res) => {
   try {
     const deletedReservation = await Reservation.findByIdAndDelete(req.params.id);
     
