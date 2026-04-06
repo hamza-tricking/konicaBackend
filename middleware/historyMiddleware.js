@@ -101,8 +101,8 @@ const historyMiddleware = (actionType, entityType) => {
             if (req.method === 'PUT' || req.method === 'PATCH') {
               let afterDoc = req.body;
               
-              // For PATCH requests, get the updated document to show complete state
-              if (req.method === 'PATCH' && entityId && isSuccess) {
+              // For both PUT and PATCH requests, get the updated document to show complete state
+              if (entityId && isSuccess) {
                 try {
                   const Model = getModel(entityType);
                   afterDoc = await Model.findById(entityId);
