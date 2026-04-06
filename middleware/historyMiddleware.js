@@ -150,7 +150,7 @@ const getDescription = (actionType, method, entityType) => {
     'USER_DELETE': 'حذف المستخدم',
     'RESERVATION_CREATE': 'إنشاء حجز جديد',
     'RESERVATION_UPDATE': 'تحديث الحجز',
-    'RESERVATION_CANCEL': 'إلغاء الحجز',
+    'RESERVATION_CANCEL': 'حذف الحجز',
     'RESERVATION_COMPLETE': 'إكمال الحجز',
     'ORDER_CREATE': 'إنشاء طلب جديد',
     'ORDER_UPDATE': 'تحديث الطلب',
