@@ -155,7 +155,7 @@ const getDescription = (actionType, method, entityType) => {
     'ORDER_CREATE': 'إنشاء طلب جديد',
     'ORDER_UPDATE': 'تحديث الطلب',
     'ORDER_ACCEPT': 'قبول الطلب',
-    'ORDER_REJECT': 'حذف الطلب',
+    'ORDER_REJECT': 'رفض الطلب',
     'PACK_CREATE': 'إنشاء باقة جديدة',
     'PACK_UPDATE': 'تحديث الباقة',
     'PACK_DELETE': 'حذف الباقة',

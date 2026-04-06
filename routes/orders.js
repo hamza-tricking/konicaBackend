@@ -285,15 +285,44 @@ router.put('/:id/state', protect, employer, async (req, res) => {
 });
 
 // Admin route to delete order (protected)
-router.delete('/:id', protect, admin, historyMiddleware('ORDER_REJECT', 'Order'), async (req, res) => {
+router.delete('/:id', protect, admin, async (req, res) => {
   try {
-    const order = await Order.findByIdAndDelete(req.params.id);
+    // Get the order before deleting for history
+    const order = await Order.findById(req.params.id);
     
     if (!order) {
       return res.status(404).json({
         success: false,
         message: 'الطلب غير موجود'
       });
+    }
+    
+    // Now delete the order
+    await Order.findByIdAndDelete(req.params.id);
+    
+    // Create history entry manually
+    try {
+      const { logHistory } = require('../utils/historyLogger');
+      const historyEntry = await logHistory({
+        actionType: 'ORDER_REJECT',
+        description: getDescription('ORDER_REJECT', 'DELETE', 'Order'),
+        entityType: 'Order',
+        entityId: order._id,
+        performedBy: req.user._id,
+        role: req.user.role,
+        visibleTo: ['admin', 'sous admin'],
+        status: 'success',
+        changes: {
+          before: order,
+          after: {}
+        },
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+      
+      console.log('History entry created successfully:', historyEntry._id);
+    } catch (historyError) {
+      console.error('Error creating history entry:', historyError);
     }
     
     res.json({
