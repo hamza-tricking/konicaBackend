@@ -3,7 +3,7 @@ const router = express.Router();
 const Order = require('../models/Order');
 const Reservation = require('../models/Reservation');
 const { protect, admin, employer } = require('../middleware/auth');
-const { historyMiddleware } = require('../middleware/historyMiddleware');
+const { historyMiddleware, getDescription } = require('../middleware/historyMiddleware');
 
 // Date checking function
 const checkDateAvailability = async (date, period) => {
@@ -208,7 +208,7 @@ router.get('/:id', protect, employer, async (req, res) => {
 });
 
 // Admin route to update order state (protected)
-router.put('/:id/state', protect, employer, historyMiddleware('ORDER_UPDATE', 'Order'), async (req, res) => {
+router.put('/:id/state', protect, employer, async (req, res) => {
   try {
     const { state } = req.body;
     
@@ -218,6 +218,19 @@ router.put('/:id/state', protect, employer, historyMiddleware('ORDER_UPDATE', 'O
         message: 'الحالة يجب أن تكون إحدى: pending, accepted, rejected'
       });
     }
+    
+    // Determine action type based on state
+    let actionType;
+    if (state === 'accepted') {
+      actionType = 'ORDER_ACCEPT';
+    } else if (state === 'rejected') {
+      actionType = 'ORDER_REJECT';
+    } else {
+      actionType = 'ORDER_UPDATE';
+    }
+    
+    // Get original order for history before updating
+    const originalOrder = await Order.findById(req.params.id);
     
     const updatedOrder = await Order.findByIdAndUpdate(
       req.params.id,
@@ -230,6 +243,31 @@ router.put('/:id/state', protect, employer, historyMiddleware('ORDER_UPDATE', 'O
         success: false,
         message: 'الطلب غير موجود'
       });
+    }
+    
+    // Create history entry manually with correct action type
+    try {
+      const { logHistory } = require('../utils/historyLogger');
+      const historyEntry = await logHistory({
+        actionType,
+        description: getDescription(actionType, 'PUT', 'Order'),
+        entityType: 'Order',
+        entityId: updatedOrder._id,
+        performedBy: req.user._id,
+        role: req.user.role,
+        visibleTo: ['admin', 'sous admin'],
+        status: 'success',
+        changes: {
+          before: originalOrder || {},
+          after: updatedOrder
+        },
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent')
+      });
+      
+      console.log('History entry created successfully:', historyEntry._id);
+    } catch (historyError) {
+      console.error('Error creating history entry:', historyError);
     }
     
     res.json({
