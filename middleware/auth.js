@@ -4,6 +4,13 @@ const User = require('../models/User');
 const protect = async (req, res, next) => {
   let token;
 
+  console.log('=== AUTH DEBUG ===');
+  console.log('Request URL:', req.originalUrl);
+  console.log('Request method:', req.method);
+  console.log('Authorization header:', req.headers.authorization);
+  console.log('All headers:', Object.keys(req.headers));
+  console.log('==================');
+
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       // Get token from header
@@ -20,12 +27,20 @@ const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
-      console.error(error);
+      console.error('JWT verification error:', error.message);
+      console.error('Token that failed:', token);
       res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+  } else {
+    console.log('No token found or wrong format');
+    console.log('Authorization header exists:', !!req.headers.authorization);
+    if (req.headers.authorization) {
+      console.log('Authorization header starts with Bearer:', req.headers.authorization.startsWith('Bearer'));
     }
   }
 
   if (!token) {
+    console.log('Sending 401 - No token');
     res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
