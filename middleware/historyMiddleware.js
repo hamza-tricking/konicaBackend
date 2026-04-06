@@ -1,5 +1,25 @@
 const { logHistory, getVisibleTo, getRequestInfo } = require('../utils/historyLogger');
 
+// دالة للحصول على الموديل المناسب بناءً على نوع الكيان
+const getModel = (entityType) => {
+  switch (entityType) {
+    case 'Reservation':
+      return require('../models/Reservation');
+    case 'Order':
+      return require('../models/Order');
+    case 'User':
+      return require('../models/User');
+    case 'Pack':
+      return require('../models/Pack');
+    case 'ExtraService':
+      return require('../models/ExtraService');
+    case 'TypePhotographie':
+      return require('../models/TypePhotographie');
+    default:
+      throw new Error(`Unknown entity type: ${entityType}`);
+  }
+};
+
 // Middleware لتسجيل تلقائي للإجراءات
 const historyMiddleware = (actionType, entityType) => {
   return async (req, res, next) => {
@@ -66,10 +86,22 @@ const historyMiddleware = (actionType, entityType) => {
 
             // إضافة التغييرات إذا كان هناك update
             if (req.method === 'PUT' || req.method === 'PATCH') {
-              historyData.changes = {
-                before: req.originalDoc || {},
-                after: req.body
-              };
+              try {
+                // جلب المستند الأصلي قبل التحديث
+                const Model = getModel(entityType);
+                const originalDoc = await Model.findById(entityId);
+                
+                historyData.changes = {
+                  before: originalDoc || {},
+                  after: req.body
+                };
+              } catch (error) {
+                console.error('Error fetching original document:', error);
+                historyData.changes = {
+                  before: {},
+                  after: req.body
+                };
+              }
             }
 
             await logHistory(historyData);
