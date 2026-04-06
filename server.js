@@ -49,7 +49,8 @@ app.use(cors({
     'http://127.0.0.1:3000', 
     'https://dmtart.pro/konica',
     'https://konica-beta.vercel.app',
-    'https://konica-1geua1bvw-hamza-trickings-projects.vercel.app'
+    'https://konica-1geua1bvw-hamza-trickings-projects.vercel.app',
+    'https://www.konicavision.com'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
