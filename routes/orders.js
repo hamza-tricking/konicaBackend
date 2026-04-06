@@ -304,8 +304,8 @@ router.delete('/:id', protect, admin, async (req, res) => {
     try {
       const { logHistory } = require('../utils/historyLogger');
       const historyEntry = await logHistory({
-        actionType: 'ORDER_REJECT',
-        description: getDescription('ORDER_REJECT', 'DELETE', 'Order'),
+        actionType: 'ORDER_DELETE',
+        description: getDescription('ORDER_DELETE', 'DELETE', 'Order'),
         entityType: 'Order',
         entityId: order._id,
         performedBy: req.user._id,
