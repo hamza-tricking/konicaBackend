@@ -99,11 +99,26 @@ const historyMiddleware = (actionType, entityType) => {
 
             // إضافة التغييرات إذا كان هناك update
             if (req.method === 'PUT' || req.method === 'PATCH') {
+              let afterDoc = req.body;
+              
+              // For PATCH requests, get the updated document to show complete state
+              if (req.method === 'PATCH' && entityId && isSuccess) {
+                try {
+                  const Model = getModel(entityType);
+                  afterDoc = await Model.findById(entityId);
+                  console.log('Updated document fetched for comparison:', afterDoc?._id);
+                } catch (error) {
+                  console.error('Error fetching updated document:', error);
+                  // Fall back to request body if fetch fails
+                  afterDoc = req.body;
+                }
+              }
+              
               historyData.changes = {
                 before: originalDoc || {},
-                after: req.body
+                after: afterDoc || {}
               };
-              console.log('Changes captured - before:', originalDoc?._id, 'after body keys:', Object.keys(req.body || {}));
+              console.log('Changes captured - before:', originalDoc?._id, 'after type:', typeof afterDoc);
             }
 
             await logHistory(historyData);
