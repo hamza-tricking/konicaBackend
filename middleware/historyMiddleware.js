@@ -29,6 +29,21 @@ const historyMiddleware = (actionType, entityType) => {
 
     let responseData = null;
     let isSuccess = true;
+    let originalDoc = null;
+
+    // Fetch original document BEFORE the update for PUT/PATCH requests
+    if (req.method === 'PUT' || req.method === 'PATCH') {
+      try {
+        const entityId = req.params.id;
+        if (entityId) {
+          const Model = getModel(entityType);
+          originalDoc = await Model.findById(entityId);
+          console.log('Original document fetched:', originalDoc?._id);
+        }
+      } catch (error) {
+        console.error('Error fetching original document before update:', error);
+      }
+    }
 
     // Intercept response
     res.send = function(data) {
@@ -54,10 +69,8 @@ const historyMiddleware = (actionType, entityType) => {
         console.log('Request method:', req.method);
         console.log('Request URL:', req.originalUrl);
         console.log('User exists:', !!req.user);
-        console.log('User data:', req.user);
         console.log('Response status:', res.statusCode);
         console.log('Is success:', isSuccess);
-        console.log('Response data:', responseData);
         console.log('==============================');
         
         // التحقق من وجود مستخدم والإجراء المطلوب
@@ -86,22 +99,11 @@ const historyMiddleware = (actionType, entityType) => {
 
             // إضافة التغييرات إذا كان هناك update
             if (req.method === 'PUT' || req.method === 'PATCH') {
-              try {
-                // جلب المستند الأصلي قبل التحديث
-                const Model = getModel(entityType);
-                const originalDoc = await Model.findById(entityId);
-                
-                historyData.changes = {
-                  before: originalDoc || {},
-                  after: req.body
-                };
-              } catch (error) {
-                console.error('Error fetching original document:', error);
-                historyData.changes = {
-                  before: {},
-                  after: req.body
-                };
-              }
+              historyData.changes = {
+                before: originalDoc || {},
+                after: req.body
+              };
+              console.log('Changes captured - before:', originalDoc?._id, 'after body keys:', Object.keys(req.body || {}));
             }
 
             await logHistory(historyData);
