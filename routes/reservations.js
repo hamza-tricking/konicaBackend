@@ -2,6 +2,7 @@ const express = require('express');
 const Reservation = require('../models/Reservation');
 const Pack = require('../models/Pack');
 const { historyMiddleware } = require('../middleware/historyMiddleware');
+const { protect, employer } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all reservations with populated data
@@ -141,7 +142,7 @@ router.post('/', async (req, res) => {
 });
 
 // Update reservation
-router.put('/:id', historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
+router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
     const { date, period } = req.body;
     
@@ -180,7 +181,7 @@ router.put('/:id', historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async
 });
 
 // Update reservation status
-router.patch('/:id/status', historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
+router.patch('/:id/status', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
     const { status } = req.body;
     
@@ -204,7 +205,7 @@ router.patch('/:id/status', historyMiddleware('RESERVATION_UPDATE', 'Reservation
 });
 
 // Assign employer to reservation
-router.patch('/:id/assign-employer', historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
+router.patch('/:id/assign-employer', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
     const { employerId } = req.body;
     
@@ -228,7 +229,7 @@ router.patch('/:id/assign-employer', historyMiddleware('RESERVATION_UPDATE', 'Re
 });
 
 // Update invoice details
-router.patch('/:id/invoice', historyMiddleware('INVOICE_UPDATE', 'Reservation'), async (req, res) => {
+router.patch('/:id/invoice', protect, employer, historyMiddleware('INVOICE_UPDATE', 'Reservation'), async (req, res) => {
   try {
     const { invoice } = req.body;
     
@@ -257,7 +258,7 @@ router.patch('/:id/invoice', historyMiddleware('INVOICE_UPDATE', 'Reservation'),
 });
 
 // Delete reservation
-router.delete('/:id', historyMiddleware('RESERVATION_CANCEL', 'Reservation'), async (req, res) => {
+router.delete('/:id', protect, employer, historyMiddleware('RESERVATION_CANCEL', 'Reservation'), async (req, res) => {
   try {
     const deletedReservation = await Reservation.findByIdAndDelete(req.params.id);
     

@@ -1,6 +1,7 @@
 const express = require('express');
 const ExtraService = require('../models/ExtraService');
 const { historyMiddleware } = require('../middleware/historyMiddleware');
+const { protect, admin } = require('../middleware/auth');
 const router = express.Router();
 
 // GET /api/extra-services - Get all active extra services
@@ -37,7 +38,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST /api/extra-services - Create a new extra service
-router.post('/', historyMiddleware('SERVICE_CREATE', 'ExtraService'), async (req, res) => {
+router.post('/', protect, admin, historyMiddleware('SERVICE_CREATE', 'ExtraService'), async (req, res) => {
   try {
     const { name, description, photo, price } = req.body;
 
@@ -64,7 +65,7 @@ router.post('/', historyMiddleware('SERVICE_CREATE', 'ExtraService'), async (req
 });
 
 // PUT /api/extra-services/:id - Update an extra service
-router.put('/:id', historyMiddleware('SERVICE_UPDATE', 'ExtraService'), async (req, res) => {
+router.put('/:id', protect, admin, historyMiddleware('SERVICE_UPDATE', 'ExtraService'), async (req, res) => {
   try {
     const { name, description, photo, price } = req.body;
 
@@ -86,7 +87,7 @@ router.put('/:id', historyMiddleware('SERVICE_UPDATE', 'ExtraService'), async (r
 });
 
 // DELETE /api/extra-services/:id - Soft delete an extra service
-router.delete('/:id', historyMiddleware('SERVICE_DELETE', 'ExtraService'), async (req, res) => {
+router.delete('/:id', protect, admin, historyMiddleware('SERVICE_DELETE', 'ExtraService'), async (req, res) => {
   try {
     const extraService = await ExtraService.findById(req.params.id);
     if (!extraService) {

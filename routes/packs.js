@@ -1,6 +1,7 @@
 const express = require('express');
 const Pack = require('../models/Pack');
 const { historyMiddleware } = require('../middleware/historyMiddleware');
+const { protect, admin } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all packs
@@ -15,7 +16,7 @@ router.get('/', async (req, res) => {
 });
 
 // Add new pack
-router.post('/', historyMiddleware('PACK_CREATE', 'Pack'), async (req, res) => {
+router.post('/', protect, admin, historyMiddleware('PACK_CREATE', 'Pack'), async (req, res) => {
   try {
     const { name, description, price, features, photo } = req.body;
     
@@ -36,7 +37,7 @@ router.post('/', historyMiddleware('PACK_CREATE', 'Pack'), async (req, res) => {
 });
 
 // Update pack
-router.put('/:id', historyMiddleware('PACK_UPDATE', 'Pack'), async (req, res) => {
+router.put('/:id', protect, admin, historyMiddleware('PACK_UPDATE', 'Pack'), async (req, res) => {
   try {
     const { id } = req.params;
     const updatedPack = await Pack.findByIdAndUpdate(
@@ -57,7 +58,7 @@ router.put('/:id', historyMiddleware('PACK_UPDATE', 'Pack'), async (req, res) =>
 });
 
 // Delete pack (soft delete)
-router.delete('/:id', historyMiddleware('PACK_DELETE', 'Pack'), async (req, res) => {
+router.delete('/:id', protect, admin, historyMiddleware('PACK_DELETE', 'Pack'), async (req, res) => {
   try {
     const { id } = req.params;
     const deletedPack = await Pack.findByIdAndUpdate(
