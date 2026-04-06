@@ -32,7 +32,7 @@ const historyMiddleware = (actionType, entityType) => {
     let originalDoc = null;
 
     // Fetch original document BEFORE the update for PUT/PATCH requests
-    if (req.method === 'PUT' || req.method === 'PATCH') {
+    if (req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE') {
       try {
         const entityId = req.params.id;
         if (entityId) {
@@ -41,7 +41,7 @@ const historyMiddleware = (actionType, entityType) => {
           console.log('Original document fetched:', originalDoc?._id);
         }
       } catch (error) {
-        console.error('Error fetching original document before update:', error);
+        console.error('Error fetching original document before update/delete:', error);
       }
     }
 
@@ -98,11 +98,14 @@ const historyMiddleware = (actionType, entityType) => {
             console.log('History data to be saved:', historyData);
 
             // إضافة التغييرات إذا كان هناك update
-            if (req.method === 'PUT' || req.method === 'PATCH') {
+            if (req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE') {
               let afterDoc = req.body;
               
-              // For both PUT and PATCH requests, get the updated document to show complete state
-              if (entityId && isSuccess) {
+              if (req.method === 'DELETE') {
+                // For DELETE requests, there's no after state
+                afterDoc = {};
+              } else if (entityId && isSuccess) {
+                // For PUT and PATCH requests, get the updated document to show complete state
                 try {
                   const Model = getModel(entityType);
                   afterDoc = await Model.findById(entityId);

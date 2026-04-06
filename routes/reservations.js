@@ -119,6 +119,10 @@ router.post('/', async (req, res) => {
         role: 'public',
         visibleTo: ['admin', 'sous admin'], // Admin and sous admin can see reservations
         status: 'success',
+        changes: {
+          before: {}, // No before state for creation
+          after: savedReservation // Include the created reservation details
+        },
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('User-Agent')
       });
