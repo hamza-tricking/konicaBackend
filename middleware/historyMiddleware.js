@@ -82,7 +82,21 @@ const historyMiddleware = (actionType, entityType) => {
         const entityId = req.params.id;
         if (entityId) {
           const Model = getModel(entityType);
-          originalDoc = await Model.findById(entityId);
+          let query = Model.findById(entityId);
+          
+          // Populate related fields based on entity type
+          if (entityType === 'Reservation') {
+            query = query.populate('pack', 'name price features')
+                      .populate('typePhotographie', 'name description photo')
+                      .populate('assignedEmployers', 'username fullName');
+          } else if (entityType === 'Order') {
+            query = query.populate('pack', 'name price features')
+                      .populate('typePhotographie', 'name description photo');
+          } else if (entityType === 'User') {
+            query = query.select('-password'); // Exclude password
+          }
+          
+          originalDoc = await query;
           console.log('Original document fetched:', originalDoc?._id);
         }
       } catch (error) {
@@ -154,7 +168,21 @@ const historyMiddleware = (actionType, entityType) => {
                 // For PUT and PATCH requests, get the updated document to show complete state
                 try {
                   const Model = getModel(entityType);
-                  afterDoc = await Model.findById(entityId);
+                  let query = Model.findById(entityId);
+                  
+                  // Populate related fields based on entity type
+                  if (entityType === 'Reservation') {
+                    query = query.populate('pack', 'name price features')
+                              .populate('typePhotographie', 'name description photo')
+                              .populate('assignedEmployers', 'username fullName');
+                  } else if (entityType === 'Order') {
+                    query = query.populate('pack', 'name price features')
+                              .populate('typePhotographie', 'name description photo');
+                  } else if (entityType === 'User') {
+                    query = query.select('-password'); // Exclude password
+                  }
+                  
+                  afterDoc = await query;
                   console.log('Updated document fetched for comparison:', afterDoc?._id);
                 } catch (error) {
                   console.error('Error fetching updated document:', error);
