@@ -24,18 +24,32 @@ const getModel = (entityType) => {
 const hasRealChanges = (before, after) => {
   if (!before || !after) return true;
   
+  console.log('=== COMPARING DOCUMENTS ===');
+  console.log('Before:', before._id, 'Populated fields:', {
+    pack: before.pack,
+    typePhotographie: before.typePhotographie,
+    assignedEmployers: before.assignedEmployers
+  });
+  console.log('After:', after._id, 'Populated fields:', {
+    pack: after.pack,
+    typePhotographie: after.typePhotographie,
+    assignedEmployers: after.assignedEmployers
+  });
+  
   // Technical fields to ignore
   const technicalFields = ['_id', '__v', 'createdAt', 'updatedAt'];
   
   // Get all keys from both objects
-  const allKeys = new Set([...Object.keys(before.toObject ? before.toObject() : before), ...Object.keys(after.toObject ? after.toObject() : after)]);
+  const beforeObj = before.toObject ? before.toObject() : before;
+  const afterObj = after.toObject ? after.toObject() : after;
+  const allKeys = new Set([...Object.keys(beforeObj), ...Object.keys(afterObj)]);
   
   for (const key of allKeys) {
     // Skip technical fields
     if (technicalFields.includes(key)) continue;
     
-    const beforeValue = before[key];
-    const afterValue = after[key];
+    const beforeValue = beforeObj[key];
+    const afterValue = afterObj[key];
     
     // Handle nested objects
     if (typeof beforeValue === 'object' && typeof afterValue === 'object' && 
@@ -47,14 +61,28 @@ const hasRealChanges = (before, after) => {
         return true;
       }
     } else {
-      // Compare values directly for primitives and arrays
-      const beforeStr = JSON.stringify(beforeValue);
-      const afterStr = JSON.stringify(afterValue);
+      // For populated references, compare by _id if available, otherwise by value
+      let beforeComparable = beforeValue;
+      let afterComparable = afterValue;
+      
+      // Handle populated objects
+      if (beforeValue && typeof beforeValue === 'object' && beforeValue._id) {
+        beforeComparable = beforeValue._id;
+      }
+      if (afterValue && typeof afterValue === 'object' && afterValue._id) {
+        afterComparable = afterValue._id;
+      }
+      
+      // Compare values
+      const beforeStr = JSON.stringify(beforeComparable);
+      const afterStr = JSON.stringify(afterComparable);
       
       if (beforeStr !== afterStr) {
         console.log(`Change detected in field '${key}':`, {
-          before: beforeValue,
-          after: afterValue
+          before: beforeComparable,
+          after: afterComparable,
+          beforeType: typeof beforeComparable,
+          afterType: typeof afterComparable
         });
         return true;
       }
