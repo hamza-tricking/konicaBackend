@@ -81,7 +81,7 @@ const checkReservationAvailability = async (reservationData) => {
               console.log('CONFLICT FOUND!');
               return {
                 available: false,
-                message: `هذا التاريخ محجوز ضمن حجز متعدد الأيام (${periodRange.startDate.toLocaleDateString('ar-SA')} - ${periodRange.endDate.toLocaleDateString('ar-SA')})`
+                message: `هذا التاريخ محجوز ضمن حجز متعدد الأيام (${periodRange.startDate.toLocaleDateString('en-US')} - ${periodRange.endDate.toLocaleDateString('en-US')})`
               };
             }
           }
@@ -150,7 +150,7 @@ const checkReservationAvailability = async (reservationData) => {
                 type: 'single',
                 date: single.date,
                 period: single.period,
-                message: `يتعارض مع حجز يوم واحد في ${single.date.toLocaleDateString('ar-SA')} ${single.period === 'morning' ? 'صباحاً' : 'مساءً'}`
+                message: `يتعارض مع حجز يوم واحد في ${single.date.toLocaleDateString('en-US')} ${single.period === 'morning' ? 'صباحاً' : 'مساءً'}`
               });
             }
           }
@@ -181,7 +181,7 @@ const checkReservationAvailability = async (reservationData) => {
                   type: 'multi_day',
                   startDate: existingPeriod.startDate,
                   endDate: existingPeriod.endDate,
-                  message: `يتعارض مع حجز متعدد الأيام (${existingPeriod.startDate.toLocaleDateString('ar-SA')} - ${existingPeriod.endDate.toLocaleDateString('ar-SA')})`
+                  message: `يتعارض مع حجز متعدد الأيام (${existingPeriod.startDate.toLocaleDateString('en-US')} - ${existingPeriod.endDate.toLocaleDateString('en-US')})`
                 });
               }
             }
