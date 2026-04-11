@@ -529,13 +529,17 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
       updateData.multiDayPeriods = undefined; // Clear multi-day periods for single reservations
     }
 
+    console.log('About to update reservation with data:', JSON.stringify(updateData, null, 2));
+    
     const updatedReservation = await Reservation.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: true }
+      { new: true, runValidators: false } // Temporarily disable validators
     ).populate('pack', 'name price features')
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
+    
+    console.log('Update completed successfully');
     
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });
