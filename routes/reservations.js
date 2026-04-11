@@ -5,14 +5,6 @@ const { historyMiddleware } = require('../middleware/historyMiddleware');
 const { protect, employer } = require('../middleware/auth');
 const router = express.Router();
 
-// Log all incoming requests
-router.use((req, res, next) => {
-  console.log(`=== ${req.method} ${req.originalUrl} ===`);
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-  next();
-});
-
 // Date checking function for reservations - updated for multi-day support
 const checkReservationAvailability = async (reservationData) => {
   try {
@@ -302,7 +294,7 @@ router.get('/', async (req, res) => {
       .populate('pack', 'name price features')
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName')
-      .sort({ date: -1, createdAt: -1 });
+      .sort({ createdAt: -1, date: -1 });
     res.json(reservations);
   } catch (error) {
     console.error('Error fetching reservations:', error);
@@ -471,27 +463,11 @@ router.post('/', async (req, res) => {
 
 // Update reservation
 router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
-  console.log('=== PUT REQUEST RECEIVED ===');
-  console.log('Method:', req.method);
-  console.log('URL:', req.originalUrl);
-  console.log('Params:', req.params);
-  
   try {
-    console.log('=== UPDATING RESERVATION ===');
-    console.log('Reservation ID:', req.params.id);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    const { date, period } = req.body;
     
-    const { date, period, reservationType, multiDayPeriods } = req.body;
-    
-    console.log('Extracted fields:');
-    console.log('- date:', date);
-    console.log('- period:', period);
-    console.log('- reservationType:', reservationType);
-    console.log('- multiDayPeriods:', multiDayPeriods);
-    
-    // Check for conflicts based on reservation type
-    if (reservationType === 'single' && date && period) {
-      // Check single-day reservation conflicts
+    // Check if there's already a reservation for the same date and period (excluding current reservation)
+    if (date && period) {
       const existingReservation = await Reservation.findOne({
         _id: { $ne: req.params.id }, // Exclude current reservation
         date: new Date(date),
@@ -503,60 +479,15 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
           message: 'يوجد بالفعل حجز في هذا التاريخ والفترة. الرجاء اختيار تاريخ أو فترة أخرى.' 
         });
       }
-    } else if (reservationType === 'multi_day' && multiDayPeriods && multiDayPeriods.length > 0) {
-      // Check multi-day reservation conflicts
-      for (const period of multiDayPeriods) {
-        const startDate = new Date(period.startDate);
-        const endDate = new Date(period.endDate);
-        
-        const conflictingReservation = await Reservation.findOne({
-          _id: { $ne: req.params.id },
-          reservationType: 'multi_day',
-          'multiDayPeriods': {
-            $elemMatch: {
-              $or: [
-                { 
-                  startDate: { $lte: endDate },
-                  endDate: { $gte: startDate }
-                }
-              ]
-            }
-          }
-        });
-
-        if (conflictingReservation) {
-          return res.status(400).json({ 
-            message: 'يوجد بالفعل حجز في هذه الفترة. الرجاء اختيار فترة أخرى.' 
-          });
-        }
-      }
     }
 
-    // Update reservation with proper validation
-    const updateData = { ...req.body };
-    
-    // Handle multiDayPeriods validation
-    if (reservationType === 'multi_day' && multiDayPeriods) {
-      updateData.multiDayPeriods = multiDayPeriods;
-    } else if (reservationType === 'single') {
-      updateData.multiDayPeriods = undefined; // Clear multi-day periods for single reservations
-    }
-
-    console.log('About to update reservation with data:', JSON.stringify(updateData, null, 2));
-    
-    console.log('Attempting to update reservation...');
-    
     const updatedReservation = await Reservation.findByIdAndUpdate(
       req.params.id,
-      updateData,
+      req.body,
       { new: true, runValidators: true }
     ).populate('pack', 'name price features')
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
-    
-    console.log('Update completed, checking result...');
-    
-    console.log('Update completed successfully');
     
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });
@@ -564,22 +495,8 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     
     res.json(updatedReservation);
   } catch (error) {
-    console.error('=== ERROR UPDATING RESERVATION ===');
-    console.error('Error details:', error);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('Validation errors:', error.errors);
-    
-    // Send detailed error in development
-    if (process.env.NODE_ENV === 'development') {
-      res.status(500).json({ 
-        message: 'Server error', 
-        details: error.message,
-        stack: error.stack 
-      });
-    } else {
-      res.status(500).json({ message: 'Server error' });
-    }
+    console.error('Error updating reservation:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -759,7 +676,7 @@ router.get('/employer/:employerId', async (req, res) => {
       .populate('pack', 'name price features')
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName')
-      .sort({ date: -1, createdAt: -1 });
+      .sort({ createdAt: -1, date: -1 });
     
     console.log('Total reservations in DB:', allReservations.length);
     console.log('All reservations with assignedEmployers:', allReservations.map(r => ({
@@ -775,7 +692,7 @@ router.get('/employer/:employerId', async (req, res) => {
       .populate('pack', 'name price features')
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName')
-      .sort({ date: -1, createdAt: -1 });
+      .sort({ createdAt: -1, date: -1 });
     
     console.log('Found reservations:', reservations.length);
     console.log('Reservations:', reservations.map(r => ({
