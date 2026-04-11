@@ -5,38 +5,149 @@ const Reservation = require('../models/Reservation');
 const { protect, admin, employer } = require('../middleware/auth');
 const { historyMiddleware, getDescription } = require('../middleware/historyMiddleware');
 
-// Date checking function
-const checkDateAvailability = async (date, period) => {
+// Date checking function - updated for multi-day support
+const checkDateAvailability = async (reservationData) => {
   try {
-    // Find all reservations for the given date
-    const reservations = await Reservation.find({
-      date: new Date(date)
-    });
-
-    // Check if there are any reservations for the requested period
-    const periodReservations = reservations.filter(res => res.period === period);
+    const { reservationType, date, period, multiDayPeriods } = reservationData;
     
-    if (periodReservations.length > 0) {
-      // Check if there's a reservation in the other period
-      const otherPeriod = period === 'morning' ? 'evening' : 'morning';
-      const otherPeriodReservations = reservations.filter(res => res.period === otherPeriod);
+    if (reservationType === 'single') {
+      // Single day reservation check (original logic)
+      const reservations = await Reservation.find({
+        date: new Date(date),
+        reservationType: 'single'
+      });
+
+      const periodReservations = reservations.filter(res => res.period === period);
       
-      if (otherPeriodReservations.length === 0) {
+      if (periodReservations.length > 0) {
+        const otherPeriod = period === 'morning' ? 'evening' : 'morning';
+        const otherPeriodReservations = reservations.filter(res => res.period === otherPeriod);
+        
+        if (otherPeriodReservations.length === 0) {
+          return {
+            available: false,
+            message: `هذا التاريخ محجوز في فترة ${period === 'morning' ? 'الصباح' : 'المساء'}، ولكنه متاح في فترة ${otherPeriod === 'morning' ? 'الصباح' : 'المساء'}`
+          };
+        } else {
+          return {
+            available: false,
+            message: 'هذا اليوم محجوز بالكامل (فترة الصباح والمساء)'
+          };
+        }
+      }
+      
+      // Check multi-day reservations that might overlap
+      const conflictingMultiDay = await Reservation.find({
+        reservationType: 'multi_day',
+        'multiDayPeriods.startDate': { $lte: new Date(date) },
+        'multiDayPeriods.endDate': { $gte: new Date(date) }
+      });
+
+      for (const multiDay of conflictingMultiDay) {
+        for (const periodRange of multiDay.multiDayPeriods) {
+          const periodStart = new Date(periodRange.startDate);
+          const periodEnd = new Date(periodRange.endDate);
+          const checkDate = new Date(date);
+          
+          if (checkDate >= periodStart && checkDate <= periodEnd) {
+            // Check if the requested period conflicts
+            if (periodRange.startPeriod === period || periodRange.endPeriod === period) {
+              return {
+                available: false,
+                message: `هذا التاريخ محجوز ضمن حجز متعدد الأيام (${periodRange.startDate.toLocaleDateString('ar-SA')} - ${periodRange.endDate.toLocaleDateString('ar-SA')})`
+              };
+            }
+          }
+        }
+      }
+      
+      return {
+        available: true,
+        message: 'هذا التاريخ متاح في الفترة المطلوبة'
+      };
+      
+    } else if (reservationType === 'multi_day') {
+      // Multi-day reservation check
+      const conflicts = [];
+      
+      for (const requestedPeriod of multiDayPeriods) {
+        const requestedStart = new Date(requestedPeriod.startDate);
+        const requestedEnd = new Date(requestedPeriod.endDate);
+        
+        // Check single day reservations
+        const singleDayConflicts = await Reservation.find({
+          reservationType: 'single',
+          date: { $gte: requestedStart, $lte: requestedEnd }
+        });
+        
+        for (const single of singleDayConflicts) {
+          const singleDate = new Date(single.date);
+          if (singleDate >= requestedStart && singleDate <= requestedEnd) {
+            // Check if periods overlap
+            if (requestedPeriod.startPeriod === single.period || 
+                requestedPeriod.endPeriod === single.period ||
+                (requestedPeriod.startPeriod !== requestedPeriod.endPeriod)) {
+              conflicts.push({
+                type: 'single',
+                date: single.date,
+                period: single.period,
+                message: `يتعارض مع حجز يوم واحد في ${single.date.toLocaleDateString('ar-SA')} ${single.period === 'morning' ? 'صباحاً' : 'مساءً'}`
+              });
+            }
+          }
+        }
+        
+        // Check multi-day reservations
+        const multiDayConflicts = await Reservation.find({
+          reservationType: 'multi_day',
+          'multiDayPeriods.startDate': { $lte: requestedEnd },
+          'multiDayPeriods.endDate': { $gte: requestedStart }
+        });
+        
+        for (const existingMultiDay of multiDayConflicts) {
+          for (const existingPeriod of existingMultiDay.multiDayPeriods) {
+            const existingStart = new Date(existingPeriod.startDate);
+            const existingEnd = new Date(existingPeriod.endDate);
+            
+            // Check if date ranges overlap
+            if (requestedStart <= existingEnd && requestedEnd >= existingStart) {
+              // Check if periods overlap
+              const periodOverlap = 
+                (requestedPeriod.startPeriod === existingPeriod.startPeriod) ||
+                (requestedPeriod.endPeriod === existingPeriod.endPeriod) ||
+                (requestedPeriod.startPeriod === existingPeriod.endPeriod) ||
+                (requestedPeriod.endPeriod === existingPeriod.startPeriod);
+                
+              if (periodOverlap) {
+                conflicts.push({
+                  type: 'multi_day',
+                  startDate: existingPeriod.startDate,
+                  endDate: existingPeriod.endDate,
+                  message: `يتعارض مع حجز متعدد الأيام (${existingPeriod.startDate.toLocaleDateString('ar-SA')} - ${existingPeriod.endDate.toLocaleDateString('ar-SA')})`
+                });
+              }
+            }
+          }
+        }
+      }
+      
+      if (conflicts.length > 0) {
         return {
           available: false,
-          message: `هذا التاريخ محجوز في فترة ${period === 'morning' ? 'الصباح' : 'المساء'}، ولكنه متاح في فترة ${otherPeriod === 'morning' ? 'الصباح' : 'المساء'}`
-        };
-      } else {
-        return {
-          available: false,
-          message: 'هذا اليوم محجوز بالكامل (فترة الصباح والمساء)'
+          message: 'توجد تعارضات في الفترات المطلوبة',
+          conflicts: conflicts
         };
       }
+      
+      return {
+        available: true,
+        message: 'الفترات المطلوبة متاحة للحجز'
+      };
     }
     
     return {
-      available: true,
-      message: 'هذا التاريخ متاح في الفترة المطلوبة'
+      available: false,
+      message: 'نوع الحجز غير صالح'
     };
   } catch (error) {
     console.error('Error checking date availability:', error);
@@ -50,21 +161,65 @@ const checkDateAvailability = async (date, period) => {
 // Public route to check date availability
 router.get('/check-availability', async (req, res) => {
   try {
-    const { date, period } = req.query;
+    const { date, period, reservationType, multiDayPeriods } = req.query;
     
-    if (!date || !period) {
+    // Support both old and new formats
+    if (date && period && !reservationType) {
+      // Old format - single day
+      const availability = await checkDateAvailability({
+        reservationType: 'single',
+        date,
+        period
+      });
+      
+      res.json({
+        success: true,
+        ...availability
+      });
+    } else if (reservationType) {
+      // New format - support both types
+      const reservationData = {
+        reservationType
+      };
+      
+      if (reservationType === 'single') {
+        if (!date || !period) {
+          return res.status(400).json({
+            success: false,
+            message: 'التاريخ والفترة مطلوبان للحجوزات الفردية'
+          });
+        }
+        reservationData.date = date;
+        reservationData.period = period;
+      } else if (reservationType === 'multi_day') {
+        if (!multiDayPeriods) {
+          return res.status(400).json({
+            success: false,
+            message: 'الفترات المتعددة مطلوبة للحجوزات متعددة الأيام'
+          });
+        }
+        try {
+          reservationData.multiDayPeriods = JSON.parse(multiDayPeriods);
+        } catch (e) {
+          return res.status(400).json({
+            success: false,
+            message: 'صيغة الفترات المتعددة غير صالحة'
+          });
+        }
+      }
+      
+      const availability = await checkDateAvailability(reservationData);
+      
+      res.json({
+        success: true,
+        ...availability
+      });
+    } else {
       return res.status(400).json({
         success: false,
-        message: 'التاريخ والفترة مطلوبان'
+        message: 'بيانات غير كافية للتحقق من التوفر'
       });
     }
-    
-    const availability = await checkDateAvailability(date, period);
-    
-    res.json({
-      success: true,
-      ...availability
-    });
   } catch (error) {
     console.error('Error in check-availability:', error);
     res.status(500).json({
@@ -89,18 +244,32 @@ router.post('/', async (req, res) => {
     console.log('User from request:', req.user);
     console.log('Pack ID:', orderData.pack);
     console.log('TypePhotographie ID:', orderData.typePhotographie);
+    console.log('Reservation Type:', orderData.reservationType);
     console.log('Date:', orderData.date);
+    console.log('Multi-day Periods:', orderData.multiDayPeriods);
     console.log('Additional Items:', orderData.additionalItems);
     console.log('Invoice:', orderData.invoice);
     console.log('============================');
     
     // Check date availability first
-    const availability = await checkDateAvailability(orderData.date, orderData.period);
+    const reservationCheckData = {
+      reservationType: orderData.reservationType || 'single'
+    };
+    
+    if (orderData.reservationType === 'single') {
+      reservationCheckData.date = orderData.date;
+      reservationCheckData.period = orderData.period;
+    } else if (orderData.reservationType === 'multi_day') {
+      reservationCheckData.multiDayPeriods = orderData.multiDayPeriods;
+    }
+    
+    const availability = await checkDateAvailability(reservationCheckData);
     
     if (!availability.available) {
       return res.status(400).json({
         success: false,
-        message: availability.message
+        message: availability.message,
+        conflicts: availability.conflicts
       });
     }
     

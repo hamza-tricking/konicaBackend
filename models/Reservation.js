@@ -43,19 +43,56 @@ const reservationSchema = new mongoose.Schema({
     maxlength: [200, 'Hall name cannot exceed 200 characters']
   },
 
+  // Reservation Type - لتحديد نوع الحجز
+  reservationType: {
+    type: String,
+    required: true,
+    enum: {
+      values: ['single', 'multi_day'],
+      message: 'Reservation type must be single or multi_day'
+    },
+    default: 'single'
+  },
+
   // Reservation Details
   date: {
     type: Date,
-    required: [true, 'Reservation date is required']
+    required: function() { return this.reservationType === 'single'; }
   },
   period: {
     type: String,
-    required: [true, 'Reservation period is required'],
+    required: function() { return this.reservationType === 'single'; },
     enum: {
       values: ['morning', 'evening'],
       message: 'Period must be morning or evening'
     }
   },
+
+  // Multi-day periods (للحجوزات المتعددة الأيام)
+  multiDayPeriods: [{
+    startDate: {
+      type: Date,
+      required: function() { return this.reservationType === 'multi_day'; }
+    },
+    endDate: {
+      type: Date,
+      required: function() { return this.reservationType === 'multi_day'; }
+    },
+    startPeriod: {
+      type: String,
+      enum: ['morning', 'evening'],
+      required: function() { return this.reservationType === 'multi_day'; }
+    },
+    endPeriod: {
+      type: String,
+      enum: ['morning', 'evening'],
+      required: function() { return this.reservationType === 'multi_day'; }
+    },
+    description: {
+      type: String,
+      maxlength: [200, 'Description cannot exceed 200 characters']
+    }
+  }],
 
   // Related Pack
   pack: {
@@ -210,6 +247,63 @@ reservationSchema.virtual('statusArabic').get(function() {
     cancelled: 'ملغي'
   };
   return statuses[this.status] || this.status;
+});
+
+// Virtual for reservation type in Arabic
+reservationSchema.virtual('reservationTypeArabic').get(function() {
+  const types = {
+    single: 'يوم واحد',
+    multi_day: 'متعدد الأيام'
+  };
+  return types[this.reservationType] || this.reservationType;
+});
+
+// Virtual for display info
+reservationSchema.virtual('displayInfo').get(function() {
+  if (this.reservationType === 'multi_day') {
+    const firstPeriod = this.multiDayPeriods[0];
+    const lastPeriod = this.multiDayPeriods[this.multiDayPeriods.length - 1];
+    return {
+      type: 'متعدد الأيام',
+      startDate: firstPeriod.startDate,
+      endDate: lastPeriod.endDate,
+      startPeriod: firstPeriod.startPeriod,
+      endPeriod: lastPeriod.endPeriod,
+      totalPeriods: this.multiDayPeriods.length,
+      dateDisplay: `${this.formatDate(firstPeriod.startDate)} - ${this.formatDate(lastPeriod.endDate)}`,
+      periodDisplay: `${this.getPeriodText(firstPeriod.startPeriod)} - ${this.getPeriodText(lastPeriod.endPeriod)}`
+    };
+  } else {
+    return {
+      type: 'يوم واحد',
+      date: this.date,
+      period: this.period,
+      dateDisplay: this.formatDate(this.date),
+      periodDisplay: this.getPeriodText(this.period)
+    };
+  }
+});
+
+// Helper methods for virtual
+reservationSchema.virtual('formatDate').get(function() {
+  return function(date) {
+    if (!date) return '';
+    const d = new Date(date);
+    const day = d.getDate().toString().padStart(2, '0');
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+});
+
+reservationSchema.virtual('getPeriodText').get(function() {
+  return function(period) {
+    const periods = {
+      morning: 'صباح',
+      evening: 'مساء'
+    };
+    return periods[period] || period;
+  };
 });
 
 // Pre-save middleware to calculate total price
