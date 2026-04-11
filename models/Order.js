@@ -55,12 +55,25 @@ const orderSchema = new mongoose.Schema({
     maxlength: [200, 'Hall name cannot exceed 200 characters']
   },
 
+  // Reservation Type - لتحديد نوع الحجز
+  reservationType: {
+    type: String,
+    required: true,
+    enum: {
+      values: ['single', 'multi_day'],
+      message: 'Reservation type must be single or multi_day'
+    },
+    default: 'single'
+  },
+
   // Reservation Details (same as reservation)
   date: {
     type: Date,
-    required: [true, 'Order date is required'],
+    required: function() { return this.reservationType === 'single'; },
     validate: {
       validator: function(v) {
+        // Only validate if this is a single reservation
+        if (this.reservationType !== 'single') return true;
         // Date must be today or in the future
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -71,12 +84,38 @@ const orderSchema = new mongoose.Schema({
   },
   period: {
     type: String,
-    required: [true, 'Order period is required'],
+    required: function() { return this.reservationType === 'single'; },
     enum: {
       values: ['morning', 'evening'],
       message: 'Period must be morning or evening'
     }
   },
+
+  // Multi-day periods for multi-day reservations
+  multiDayPeriods: [{
+    startDate: {
+      type: Date,
+      required: function() { return this.reservationType === 'multi_day'; }
+    },
+    endDate: {
+      type: Date,
+      required: function() { return this.reservationType === 'multi_day'; }
+    },
+    startPeriod: {
+      type: String,
+      required: function() { return this.reservationType === 'multi_day'; },
+      enum: ['morning', 'evening']
+    },
+    endPeriod: {
+      type: String,
+      required: function() { return this.reservationType === 'multi_day'; },
+      enum: ['morning', 'evening']
+    },
+    description: {
+      type: String,
+      maxlength: [500, 'Description cannot exceed 500 characters']
+    }
+  }],
 
   // Related Pack (same as reservation)
   pack: {

@@ -306,11 +306,22 @@ router.post('/', async (req, res) => {
       });
     }
     
-    // Create new order
-    const newOrder = new Order({
+    // Prepare order data with proper date conversion
+    const preparedOrderData = {
       ...orderData
-      // Remove explicit state setting to use model default ('accepted')
-    });
+    };
+    
+    // Convert multiDayPeriods dates to Date objects if present
+    if (preparedOrderData.multiDayPeriods && Array.isArray(preparedOrderData.multiDayPeriods)) {
+      preparedOrderData.multiDayPeriods = preparedOrderData.multiDayPeriods.map(period => ({
+        ...period,
+        startDate: period.startDate ? new Date(period.startDate) : undefined,
+        endDate: period.endDate ? new Date(period.endDate) : undefined
+      }));
+    }
+    
+    // Create new order
+    const newOrder = new Order(preparedOrderData);
     
     const savedOrder = await newOrder.save();
     console.log('Order saved successfully:', savedOrder._id);

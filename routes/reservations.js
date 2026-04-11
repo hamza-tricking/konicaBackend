@@ -404,7 +404,21 @@ router.post('/', async (req, res) => {
       reservationData.multiDayPeriods = multiDayPeriods;
     }
 
-    const reservation = new Reservation(reservationData);
+    // Prepare reservation data with proper date conversion
+    const preparedReservationData = {
+      ...reservationData
+    };
+    
+    // Convert multiDayPeriods dates to Date objects if present
+    if (preparedReservationData.multiDayPeriods && Array.isArray(preparedReservationData.multiDayPeriods)) {
+      preparedReservationData.multiDayPeriods = preparedReservationData.multiDayPeriods.map(period => ({
+        ...period,
+        startDate: period.startDate ? new Date(period.startDate) : undefined,
+        endDate: period.endDate ? new Date(period.endDate) : undefined
+      }));
+    }
+    
+    const reservation = new Reservation(preparedReservationData);
 
     const savedReservation = await reservation.save();
     console.log('Reservation saved successfully:', savedReservation._id);
