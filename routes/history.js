@@ -109,16 +109,29 @@ router.get('/visible', protect, async (req, res) => {
     // Manually populate nested fields in changes
     for (let item of history) {
       if (item.changes) {
+        console.log(`Processing history item ${item._id}:`, {
+          hasBefore: !!item.changes.before,
+          hasAfter: !!item.changes.after,
+          beforePack: item.changes.before?.pack,
+          afterPack: item.changes.after?.pack,
+          beforeType: item.changes.before?.typePhotographie,
+          afterType: item.changes.after?.typePhotographie
+        });
+        
         // Populate before state
-        if (item.changes.before && item.changes.before.pack && typeof item.changes.before.pack === 'string') {
-          try {
-            const Pack = require('../models/Pack');
-            const packDoc = await Pack.findById(item.changes.before.pack);
-            if (packDoc) {
-              item.changes.before.pack = packDoc;
+        if (item.changes.before && item.changes.before.pack) {
+          console.log('Before pack type:', typeof item.changes.before.pack, 'value:', item.changes.before.pack);
+          if (typeof item.changes.before.pack === 'string') {
+            try {
+              const Pack = require('../models/Pack');
+              const packDoc = await Pack.findById(item.changes.before.pack);
+              console.log('Found pack doc:', packDoc?.name);
+              if (packDoc) {
+                item.changes.before.pack = packDoc;
+              }
+            } catch (error) {
+              console.error('Error populating before pack:', error);
             }
-          } catch (error) {
-            console.error('Error populating before pack:', error);
           }
         }
         
