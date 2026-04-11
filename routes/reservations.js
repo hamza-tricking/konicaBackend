@@ -5,6 +5,14 @@ const { historyMiddleware } = require('../middleware/historyMiddleware');
 const { protect, employer } = require('../middleware/auth');
 const router = express.Router();
 
+// Log all incoming requests
+router.use((req, res, next) => {
+  console.log(`=== ${req.method} ${req.originalUrl} ===`);
+  console.log('Headers:', req.headers);
+  console.log('Body:', req.body);
+  next();
+});
+
 // Date checking function for reservations - updated for multi-day support
 const checkReservationAvailability = async (reservationData) => {
   try {
@@ -463,6 +471,11 @@ router.post('/', async (req, res) => {
 
 // Update reservation
 router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
+  console.log('=== PUT REQUEST RECEIVED ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.originalUrl);
+  console.log('Params:', req.params);
+  
   try {
     console.log('=== UPDATING RESERVATION ===');
     console.log('Reservation ID:', req.params.id);
