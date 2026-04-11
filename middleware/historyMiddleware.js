@@ -126,6 +126,35 @@ const historyMiddleware = (actionType, entityType) => {
           
           originalDoc = await query;
           console.log('Original document fetched:', originalDoc?._id);
+          
+          // Manual population fallback for Reservation if populate didn't work
+          if (entityType === 'Reservation' && originalDoc) {
+            if (!originalDoc.pack || typeof originalDoc.pack === 'string') {
+              try {
+                const Pack = require('../models/Pack');
+                const packDoc = await Pack.findById(originalDoc.pack);
+                if (packDoc) {
+                  originalDoc.pack = packDoc;
+                  console.log('Manually populated original pack:', packDoc.name);
+                }
+              } catch (popError) {
+                console.error('Error manually populating original pack:', popError);
+              }
+            }
+            
+            if (!originalDoc.typePhotographie || typeof originalDoc.typePhotographie === 'string') {
+              try {
+                const TypePhotographie = require('../models/TypePhotographie');
+                const typeDoc = await TypePhotographie.findById(originalDoc.typePhotographie);
+                if (typeDoc) {
+                  originalDoc.typePhotographie = typeDoc;
+                  console.log('Manually populated original typePhotographie:', typeDoc.name);
+                }
+              } catch (popError) {
+                console.error('Error manually populating original typePhotographie:', popError);
+              }
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching original document before update/delete:', error);
@@ -212,6 +241,36 @@ const historyMiddleware = (actionType, entityType) => {
                   
                   afterDoc = await query;
                   console.log('Updated document fetched for comparison:', afterDoc?._id);
+                  
+                  // Manual population fallback for Reservation if populate didn't work
+                  if (entityType === 'Reservation' && afterDoc) {
+                    if (!afterDoc.pack || typeof afterDoc.pack === 'string') {
+                      try {
+                        const Pack = require('../models/Pack');
+                        const packDoc = await Pack.findById(afterDoc.pack);
+                        if (packDoc) {
+                          afterDoc.pack = packDoc;
+                          console.log('Manually populated pack:', packDoc.name);
+                        }
+                      } catch (popError) {
+                        console.error('Error manually populating pack:', popError);
+                      }
+                    }
+                    
+                    if (!afterDoc.typePhotographie || typeof afterDoc.typePhotographie === 'string') {
+                      try {
+                        const TypePhotographie = require('../models/TypePhotographie');
+                        const typeDoc = await TypePhotographie.findById(afterDoc.typePhotographie);
+                        if (typeDoc) {
+                          afterDoc.typePhotographie = typeDoc;
+                          console.log('Manually populated typePhotographie:', typeDoc.name);
+                        }
+                      } catch (popError) {
+                        console.error('Error manually populating typePhotographie:', popError);
+                      }
+                    }
+                  }
+                  
                 } catch (error) {
                   console.error('Error fetching updated document:', error);
                   // Fall back to request body if fetch fails
