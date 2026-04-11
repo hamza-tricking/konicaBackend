@@ -464,10 +464,11 @@ router.post('/', async (req, res) => {
 // Update reservation
 router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
-    const { date, period } = req.body;
+    const { date, period, reservationType, multiDayPeriods } = req.body;
     
-    // Check if there's already a reservation for the same date and period (excluding current reservation)
-    if (date && period) {
+    // Check for conflicts based on reservation type
+    if (reservationType === 'single' && date && period) {
+      // Check single-day reservation conflicts
       const existingReservation = await Reservation.findOne({
         _id: { $ne: req.params.id }, // Exclude current reservation
         date: new Date(date),
@@ -479,11 +480,48 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
           message: 'يوجد بالفعل حجز في هذا التاريخ والفترة. الرجاء اختيار تاريخ أو فترة أخرى.' 
         });
       }
+    } else if (reservationType === 'multi_day' && multiDayPeriods && multiDayPeriods.length > 0) {
+      // Check multi-day reservation conflicts
+      for (const period of multiDayPeriods) {
+        const startDate = new Date(period.startDate);
+        const endDate = new Date(period.endDate);
+        
+        const conflictingReservation = await Reservation.findOne({
+          _id: { $ne: req.params.id },
+          reservationType: 'multi_day',
+          'multiDayPeriods': {
+            $elemMatch: {
+              $or: [
+                { 
+                  startDate: { $lte: endDate },
+                  endDate: { $gte: startDate }
+                }
+              ]
+            }
+          }
+        });
+
+        if (conflictingReservation) {
+          return res.status(400).json({ 
+            message: 'يوجد بالفعل حجز في هذه الفترة. الرجاء اختيار فترة أخرى.' 
+          });
+        }
+      }
+    }
+
+    // Update reservation with proper validation
+    const updateData = { ...req.body };
+    
+    // Handle multiDayPeriods validation
+    if (reservationType === 'multi_day' && multiDayPeriods) {
+      updateData.multiDayPeriods = multiDayPeriods;
+    } else if (reservationType === 'single') {
+      updateData.multiDayPeriods = undefined; // Clear multi-day periods for single reservations
     }
 
     const updatedReservation = await Reservation.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     ).populate('pack', 'name price features')
      .populate('typePhotographie', 'name description photo')
