@@ -106,6 +106,86 @@ router.get('/visible', protect, async (req, res) => {
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
+    // Manually populate nested fields in changes
+    for (let item of history) {
+      if (item.changes) {
+        // Populate before state
+        if (item.changes.before && item.changes.before.pack && typeof item.changes.before.pack === 'string') {
+          try {
+            const Pack = require('../models/Pack');
+            const packDoc = await Pack.findById(item.changes.before.pack);
+            if (packDoc) {
+              item.changes.before.pack = packDoc;
+            }
+          } catch (error) {
+            console.error('Error populating before pack:', error);
+          }
+        }
+        
+        if (item.changes.before && item.changes.before.typePhotographie && typeof item.changes.before.typePhotographie === 'string') {
+          try {
+            const TypePhotographie = require('../models/TypePhotographie');
+            const typeDoc = await TypePhotographie.findById(item.changes.before.typePhotographie);
+            if (typeDoc) {
+              item.changes.before.typePhotographie = typeDoc;
+            }
+          } catch (error) {
+            console.error('Error populating before typePhotographie:', error);
+          }
+        }
+        
+        // Populate after state
+        if (item.changes.after && item.changes.after.pack && typeof item.changes.after.pack === 'string') {
+          try {
+            const Pack = require('../models/Pack');
+            const packDoc = await Pack.findById(item.changes.after.pack);
+            if (packDoc) {
+              item.changes.after.pack = packDoc;
+            }
+          } catch (error) {
+            console.error('Error populating after pack:', error);
+          }
+        }
+        
+        if (item.changes.after && item.changes.after.typePhotographie && typeof item.changes.after.typePhotographie === 'string') {
+          try {
+            const TypePhotographie = require('../models/TypePhotographie');
+            const typeDoc = await TypePhotographie.findById(item.changes.after.typePhotographie);
+            if (typeDoc) {
+              item.changes.after.typePhotographie = typeDoc;
+            }
+          } catch (error) {
+            console.error('Error populating after typePhotographie:', error);
+          }
+        }
+        
+        // Populate assigned employers arrays
+        if (item.changes.before && item.changes.before.assignedEmployers && Array.isArray(item.changes.before.assignedEmployers)) {
+          try {
+            const User = require('../models/User');
+            const employers = await User.find({
+              '_id': { $in: item.changes.before.assignedEmployers }
+            }).select('username fullName');
+            item.changes.before.assignedEmployers = employers;
+          } catch (error) {
+            console.error('Error populating before assignedEmployers:', error);
+          }
+        }
+        
+        if (item.changes.after && item.changes.after.assignedEmployers && Array.isArray(item.changes.after.assignedEmployers)) {
+          try {
+            const User = require('../models/User');
+            const employers = await User.find({
+              '_id': { $in: item.changes.after.assignedEmployers }
+            }).select('username fullName');
+            item.changes.after.assignedEmployers = employers;
+          } catch (error) {
+            console.error('Error populating after assignedEmployers:', error);
+          }
+        }
+      }
+    }
+
     const total = await History.countDocuments({
       $or: [
         { visibleTo: { $in: [userRole] } },
