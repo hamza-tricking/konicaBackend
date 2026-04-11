@@ -20,6 +20,51 @@ const getModel = (entityType) => {
   }
 };
 
+// دالة للتحقق من وجود تغييرات حقيقية
+const hasRealChanges = (before, after) => {
+  if (!before || !after) return true;
+  
+  // Technical fields to ignore
+  const technicalFields = ['_id', '__v', 'createdAt', 'updatedAt'];
+  
+  // Get all keys from both objects
+  const allKeys = new Set([...Object.keys(before.toObject ? before.toObject() : before), ...Object.keys(after.toObject ? after.toObject() : after)]);
+  
+  for (const key of allKeys) {
+    // Skip technical fields
+    if (technicalFields.includes(key)) continue;
+    
+    const beforeValue = before[key];
+    const afterValue = after[key];
+    
+    // Handle nested objects
+    if (typeof beforeValue === 'object' && typeof afterValue === 'object' && 
+        beforeValue !== null && afterValue !== null && 
+        !Array.isArray(beforeValue) && !Array.isArray(afterValue)) {
+      
+      // Recursively check nested objects
+      if (hasRealChanges(beforeValue, afterValue)) {
+        return true;
+      }
+    } else {
+      // Compare values directly for primitives and arrays
+      const beforeStr = JSON.stringify(beforeValue);
+      const afterStr = JSON.stringify(afterValue);
+      
+      if (beforeStr !== afterStr) {
+        console.log(`Change detected in field '${key}':`, {
+          before: beforeValue,
+          after: afterValue
+        });
+        return true;
+      }
+    }
+  }
+  
+  console.log('No real changes detected');
+  return false;
+};
+
 // Middleware لتسجيل تلقائي للإجراءات
 const historyMiddleware = (actionType, entityType) => {
   return async (req, res, next) => {
@@ -100,6 +145,7 @@ const historyMiddleware = (actionType, entityType) => {
             // إضافة التغييرات إذا كان هناك update
             if (req.method === 'PUT' || req.method === 'PATCH' || req.method === 'DELETE') {
               let afterDoc = req.body;
+              let shouldLogHistory = true;
               
               if (req.method === 'DELETE') {
                 // For DELETE requests, there's no after state
@@ -117,15 +163,28 @@ const historyMiddleware = (actionType, entityType) => {
                 }
               }
               
-              historyData.changes = {
-                before: originalDoc || {},
-                after: afterDoc || {}
-              };
-              console.log('Changes captured - before:', originalDoc?._id, 'after type:', typeof afterDoc);
+              // Check if there are real changes (only for PUT/PATCH)
+              if ((req.method === 'PUT' || req.method === 'PATCH') && originalDoc && afterDoc) {
+                shouldLogHistory = hasRealChanges(originalDoc, afterDoc);
+              }
+              
+              if (shouldLogHistory) {
+                historyData.changes = {
+                  before: originalDoc || {},
+                  after: afterDoc || {}
+                };
+                console.log('Changes captured - before:', originalDoc?._id, 'after type:', typeof afterDoc);
+                
+                await logHistory(historyData);
+                console.log('History logged successfully');
+              } else {
+                console.log('Skipping history logging - no real changes detected');
+              }
+            } else {
+              // For POST requests, always log history
+              await logHistory(historyData);
+              console.log('History logged successfully for POST request');
             }
-
-            await logHistory(historyData);
-            console.log('History logged successfully');
           } else {
             console.log('No entity ID found, skipping history logging');
           }
