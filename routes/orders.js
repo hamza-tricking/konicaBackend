@@ -10,11 +10,21 @@ const checkDateAvailability = async (reservationData) => {
   try {
     const { reservationType, date, period, multiDayPeriods } = reservationData;
     
+    console.log('=== CHECK ORDERS AVAILABILITY ===');
+    console.log('Reservation Type:', reservationType);
+    console.log('Date:', date);
+    console.log('Period:', period);
+    console.log('Multi-day Periods:', multiDayPeriods);
+    console.log('===============================');
+    
     if (reservationType === 'single') {
       // Single day reservation check (original logic)
       const reservations = await Reservation.find({
         date: new Date(date),
-        reservationType: 'single'
+        $or: [
+          { reservationType: 'single' },
+          { reservationType: { $exists: false } } // Include old reservations without reservationType
+        ]
       });
 
       const periodReservations = reservations.filter(res => res.period === period);
@@ -50,8 +60,18 @@ const checkDateAvailability = async (reservationData) => {
           const checkDate = new Date(date);
           
           if (checkDate >= periodStart && checkDate <= periodEnd) {
-            // Check if the requested period conflicts
-            if (periodRange.startPeriod === period || periodRange.endPeriod === period) {
+            // Check if there's a period conflict
+            let hasPeriodConflict = false;
+            
+            // If the multi-day period spans both morning and evening, any single period conflicts
+            if (periodRange.startPeriod !== periodRange.endPeriod) {
+              hasPeriodConflict = true;
+            } else {
+              // If the multi-day period is single (morning OR evening), check for exact match
+              hasPeriodConflict = (period === periodRange.startPeriod);
+            }
+            
+            if (hasPeriodConflict) {
               return {
                 available: false,
                 message: `هذا التاريخ محجوز ضمن حجز متعدد الأيام (${periodRange.startDate.toLocaleDateString('ar-SA')} - ${periodRange.endDate.toLocaleDateString('ar-SA')})`
@@ -76,17 +96,30 @@ const checkDateAvailability = async (reservationData) => {
         
         // Check single day reservations
         const singleDayConflicts = await Reservation.find({
-          reservationType: 'single',
+          $or: [
+            { reservationType: 'single' },
+            { reservationType: { $exists: false } } // Include old reservations without reservationType
+          ],
           date: { $gte: requestedStart, $lte: requestedEnd }
         });
         
         for (const single of singleDayConflicts) {
           const singleDate = new Date(single.date);
+          
+          // Check if the single date falls within the multi-day period range
           if (singleDate >= requestedStart && singleDate <= requestedEnd) {
-            // Check if periods overlap
-            if (requestedPeriod.startPeriod === single.period || 
-                requestedPeriod.endPeriod === single.period ||
-                (requestedPeriod.startPeriod !== requestedPeriod.endPeriod)) {
+            // Now check if there's a period conflict
+            let hasPeriodConflict = false;
+            
+            // If the multi-day period spans both morning and evening, any single period conflicts
+            if (requestedPeriod.startPeriod !== requestedPeriod.endPeriod) {
+              hasPeriodConflict = true;
+            } else {
+              // If the multi-day period is single (morning OR evening), check for exact match
+              hasPeriodConflict = (single.period === requestedPeriod.startPeriod);
+            }
+            
+            if (hasPeriodConflict) {
               conflicts.push({
                 type: 'single',
                 date: single.date,
