@@ -24,18 +24,6 @@ const getModel = (entityType) => {
 const hasRealChanges = (before, after) => {
   if (!before || !after) return true;
   
-  console.log('=== COMPARING DOCUMENTS ===');
-  console.log('Before:', before._id, 'Populated fields:', {
-    pack: before.pack,
-    typePhotographie: before.typePhotographie,
-    assignedEmployers: before.assignedEmployers
-  });
-  console.log('After:', after._id, 'Populated fields:', {
-    pack: after.pack,
-    typePhotographie: after.typePhotographie,
-    assignedEmployers: after.assignedEmployers
-  });
-  
   // Technical fields to ignore
   const technicalFields = ['_id', '__v', 'createdAt', 'updatedAt'];
   
@@ -78,18 +66,11 @@ const hasRealChanges = (before, after) => {
       const afterStr = JSON.stringify(afterComparable);
       
       if (beforeStr !== afterStr) {
-        console.log(`Change detected in field '${key}':`, {
-          before: beforeComparable,
-          after: afterComparable,
-          beforeType: typeof beforeComparable,
-          afterType: typeof afterComparable
-        });
         return true;
       }
     }
   }
   
-  console.log('No real changes detected');
   return false;
 };
 

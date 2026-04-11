@@ -109,24 +109,13 @@ router.get('/visible', protect, async (req, res) => {
     // Manually populate nested fields in changes
     for (let item of history) {
       if (item.changes) {
-        console.log(`Processing history item ${item._id}:`, {
-          hasBefore: !!item.changes.before,
-          hasAfter: !!item.changes.after,
-          beforePack: item.changes.before?.pack,
-          afterPack: item.changes.after?.pack,
-          beforeType: item.changes.before?.typePhotographie,
-          afterType: item.changes.after?.typePhotographie
-        });
-        
         // Populate before state
         if (item.changes.before && item.changes.before.pack) {
-          console.log('Before pack type:', typeof item.changes.before.pack, 'value:', item.changes.before.pack);
           // Check if it's an ObjectId (object) or string that needs population
           if (typeof item.changes.before.pack === 'object' || typeof item.changes.before.pack === 'string') {
             try {
               const Pack = require('../models/Pack');
               const packDoc = await Pack.findById(item.changes.before.pack);
-              console.log('Found pack doc:', packDoc?.name);
               if (packDoc) {
                 item.changes.before.pack = packDoc;
               }
@@ -140,7 +129,6 @@ router.get('/visible', protect, async (req, res) => {
           try {
             const TypePhotographie = require('../models/TypePhotographie');
             const typeDoc = await TypePhotographie.findById(item.changes.before.typePhotographie);
-            console.log('Found type doc:', typeDoc?.name);
             if (typeDoc) {
               item.changes.before.typePhotographie = typeDoc;
             }
@@ -154,7 +142,6 @@ router.get('/visible', protect, async (req, res) => {
           try {
             const Pack = require('../models/Pack');
             const packDoc = await Pack.findById(item.changes.after.pack);
-            console.log('Found after pack doc:', packDoc?.name);
             if (packDoc) {
               item.changes.after.pack = packDoc;
             }
@@ -167,7 +154,6 @@ router.get('/visible', protect, async (req, res) => {
           try {
             const TypePhotographie = require('../models/TypePhotographie');
             const typeDoc = await TypePhotographie.findById(item.changes.after.typePhotographie);
-            console.log('Found after type doc:', typeDoc?.name);
             if (typeDoc) {
               item.changes.after.typePhotographie = typeDoc;
             }
