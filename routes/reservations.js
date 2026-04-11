@@ -464,7 +464,17 @@ router.post('/', async (req, res) => {
 // Update reservation
 router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
+    console.log('=== UPDATING RESERVATION ===');
+    console.log('Reservation ID:', req.params.id);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const { date, period, reservationType, multiDayPeriods } = req.body;
+    
+    console.log('Extracted fields:');
+    console.log('- date:', date);
+    console.log('- period:', period);
+    console.log('- reservationType:', reservationType);
+    console.log('- multiDayPeriods:', multiDayPeriods);
     
     // Check for conflicts based on reservation type
     if (reservationType === 'single' && date && period) {
@@ -533,8 +543,22 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     
     res.json(updatedReservation);
   } catch (error) {
-    console.error('Error updating reservation:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error('=== ERROR UPDATING RESERVATION ===');
+    console.error('Error details:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Validation errors:', error.errors);
+    
+    // Send detailed error in development
+    if (process.env.NODE_ENV === 'development') {
+      res.status(500).json({ 
+        message: 'Server error', 
+        details: error.message,
+        stack: error.stack 
+      });
+    } else {
+      res.status(500).json({ message: 'Server error' });
+    }
   }
 });
 
