@@ -531,13 +531,17 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
 
     console.log('About to update reservation with data:', JSON.stringify(updateData, null, 2));
     
+    console.log('Attempting to update reservation...');
+    
     const updatedReservation = await Reservation.findByIdAndUpdate(
       req.params.id,
       updateData,
-      { new: true, runValidators: false } // Temporarily disable validators
+      { new: true, runValidators: true }
     ).populate('pack', 'name price features')
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
+    
+    console.log('Update completed, checking result...');
     
     console.log('Update completed successfully');
     
