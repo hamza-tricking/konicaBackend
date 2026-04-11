@@ -6,7 +6,7 @@ const { protect, employer } = require('../middleware/auth');
 const router = express.Router();
 
 // Date checking function for reservations - updated for multi-day support
-const checkReservationAvailability = async (reservationData) => {
+const checkReservationAvailability = async (reservationData, excludeId = null) => {
   try {
     const { reservationType, date, period, multiDayPeriods } = reservationData;
     
@@ -19,7 +19,7 @@ const checkReservationAvailability = async (reservationData) => {
     
     if (reservationType === 'single') {
       // Single day reservation check
-      const existingReservation = await Reservation.findOne({
+      const query = {
         date: new Date(date),
         period: period,
         status: { $ne: 'cancelled' },
@@ -27,7 +27,14 @@ const checkReservationAvailability = async (reservationData) => {
           { reservationType: 'single' },
           { reservationType: { $exists: false } } // Include old reservations without reservationType
         ]
-      });
+      };
+      
+      // Exclude current reservation if provided
+      if (excludeId) {
+        query._id = { $ne: excludeId };
+      }
+      
+      const existingReservation = await Reservation.findOne(query);
 
       if (existingReservation) {
         return {
@@ -37,12 +44,19 @@ const checkReservationAvailability = async (reservationData) => {
       }
       
       // Check multi-day reservations that might overlap
-      const conflictingMultiDay = await Reservation.find({
+      const multiDayQuery = {
         reservationType: 'multi_day',
         'multiDayPeriods.startDate': { $lte: new Date(date) },
         'multiDayPeriods.endDate': { $gte: new Date(date) },
         status: { $ne: 'cancelled' }
-      });
+      };
+      
+      // Exclude current reservation if provided
+      if (excludeId) {
+        multiDayQuery._id = { $ne: excludeId };
+      }
+      
+      const conflictingMultiDay = await Reservation.find(multiDayQuery);
 
       console.log('Found conflicting multi-day reservations:', conflictingMultiDay.length);
 
@@ -102,14 +116,21 @@ const checkReservationAvailability = async (reservationData) => {
         const requestedEnd = new Date(requestedPeriod.endDate);
         
         // Check single day reservations
-        const singleDayConflicts = await Reservation.find({
+        const singleDayQuery = {
           $or: [
             { reservationType: 'single' },
             { reservationType: { $exists: false } } // Include old reservations without reservationType
           ],
           date: { $gte: requestedStart, $lte: requestedEnd },
           status: { $ne: 'cancelled' }
-        });
+        };
+        
+        // Exclude current reservation if provided
+        if (excludeId) {
+          singleDayQuery._id = { $ne: excludeId };
+        }
+        
+        const singleDayConflicts = await Reservation.find(singleDayQuery);
         
         console.log('Found single day conflicts:', singleDayConflicts.length);
         
@@ -157,12 +178,19 @@ const checkReservationAvailability = async (reservationData) => {
         }
         
         // Check multi-day reservations
-        const multiDayConflicts = await Reservation.find({
+        const multiDayConflictQuery = {
           reservationType: 'multi_day',
           'multiDayPeriods.startDate': { $lte: requestedEnd },
           'multiDayPeriods.endDate': { $gte: requestedStart },
           status: { $ne: 'cancelled' }
-        });
+        };
+        
+        // Exclude current reservation if provided
+        if (excludeId) {
+          multiDayConflictQuery._id = { $ne: excludeId };
+        }
+        
+        const multiDayConflicts = await Reservation.find(multiDayConflictQuery);
         
         for (const existingMultiDay of multiDayConflicts) {
           for (const existingPeriod of existingMultiDay.multiDayPeriods) {
@@ -464,26 +492,81 @@ router.post('/', async (req, res) => {
 // Update reservation
 router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
-    const { date, period } = req.body;
+    const { 
+      date, 
+      period, 
+      reservationType, 
+      multiDayPeriods,
+      customerName,
+      customerPhone,
+      customerEmail,
+      pack,
+      typePhotographie,
+      teamPreference,
+      assignedEmployers,
+      invoice,
+      notes
+    } = req.body;
     
-    // Check if there's already a reservation for the same date and period (excluding current reservation)
-    if (date && period) {
-      const existingReservation = await Reservation.findOne({
-        _id: { $ne: req.params.id }, // Exclude current reservation
-        date: new Date(date),
-        period: period
-      });
-
-      if (existingReservation) {
-        return res.status(400).json({ 
-          message: 'يوجد بالفعل حجز في هذا التاريخ والفترة. الرجاء اختيار تاريخ أو فترة أخرى.' 
+    // Check availability if date/period or multi-day periods are provided
+    if ((date && period) || (reservationType === 'multi_day' && multiDayPeriods)) {
+      const reservationCheckData = {
+        reservationType: reservationType || 'single'
+      };
+      
+      if (reservationType === 'multi_day' && multiDayPeriods) {
+        reservationCheckData.multiDayPeriods = multiDayPeriods;
+      } else if (date && period) {
+        reservationCheckData.date = date;
+        reservationCheckData.period = period;
+      }
+      
+      const availability = await checkReservationAvailability(reservationCheckData, req.params.id);
+      
+      if (!availability.available) {
+        return res.status(400).json({
+          success: false,
+          message: availability.message,
+          conflicts: availability.conflicts
         });
       }
     }
 
+    // Prepare update data
+    const updateData = {};
+    if (customerName !== undefined) updateData.customerName = customerName;
+    if (customerPhone !== undefined) updateData.customerPhone = customerPhone;
+    if (customerEmail !== undefined) updateData.customerEmail = customerEmail;
+    if (pack !== undefined) updateData.pack = pack;
+    if (typePhotographie !== undefined) updateData.typePhotographie = typePhotographie;
+    if (teamPreference !== undefined) updateData.teamPreference = teamPreference;
+    if (assignedEmployers !== undefined) updateData.assignedEmployers = assignedEmployers;
+    if (invoice !== undefined) updateData.invoice = invoice;
+    if (notes !== undefined) updateData.notes = notes;
+    if (reservationType !== undefined) updateData.reservationType = reservationType;
+    
+    // Handle date/period vs multiDayPeriods
+    if (reservationType === 'multi_day' && multiDayPeriods) {
+      // Convert multiDayPeriods dates to Date objects
+      updateData.multiDayPeriods = multiDayPeriods.map(period => ({
+        ...period,
+        startDate: period.startDate ? new Date(period.startDate) : undefined,
+        endDate: period.endDate ? new Date(period.endDate) : undefined
+      }));
+      // Remove single date/period for multi-day reservations
+      updateData.date = undefined;
+      updateData.period = undefined;
+    } else if (date && period) {
+      // Single day reservation
+      updateData.date = date;
+      updateData.period = period;
+      // Remove multi-day periods for single day reservations
+      updateData.multiDayPeriods = undefined;
+    }
+
     const updatedReservation = await Reservation.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     ).populate('pack', 'name price features')
      .populate('typePhotographie', 'name description photo')
@@ -496,7 +579,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     res.json(updatedReservation);
   } catch (error) {
     console.error('Error updating reservation:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
 

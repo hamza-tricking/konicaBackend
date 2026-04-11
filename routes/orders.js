@@ -156,7 +156,7 @@ const checkDateAvailability = async (reservationData) => {
                 type: 'multi_day',
                 startDate: existingPeriod.startDate,
                 endDate: existingPeriod.endDate,
-                message: `يتعارض مع حجز متعدد الأيام (${existingPeriod.startDate.toLocaleDateString('ar-SA')} - ${existingPeriod.endDate.toLocaleDateString('ar-SA')})`
+                message: `يتعارض مع حجز متعدد الأيام (${existingPeriod.startDate.toLocaleDateString('en-US')} - ${existingPeriod.endDate.toLocaleDateString('en-US')})`
               });
               }
             }
