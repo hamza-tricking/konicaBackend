@@ -374,7 +374,8 @@ router.post('/', async (req, res) => {
       teamPreference,
       assignedEmployers,
       invoice,
-      notes
+      notes,
+      additionalItems
     } = req.body;
 
     // Check availability first
@@ -429,6 +430,7 @@ router.post('/', async (req, res) => {
       assignedEmployers: assignedEmployers || [],
       invoice: invoice || calculatedInvoice,
       notes,
+      additionalItems: additionalItems || [],
       reservationType
     };
 
@@ -527,7 +529,8 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
       teamPreference,
       assignedEmployers,
       invoice,
-      notes
+      notes,
+      additionalItems
     } = req.body;
     
     // Check availability if date/period or multi-day periods are provided
@@ -569,6 +572,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     if (assignedEmployers !== undefined) updateData.assignedEmployers = assignedEmployers;
     if (invoice !== undefined) updateData.invoice = invoice;
     if (notes !== undefined) updateData.notes = notes;
+    if (additionalItems !== undefined) updateData.additionalItems = additionalItems;
     if (reservationType !== undefined) updateData.reservationType = reservationType;
     
     console.log('=== UPDATE DATA ===');
