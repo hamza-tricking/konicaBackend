@@ -361,6 +361,10 @@ router.post('/', async (req, res) => {
       customerName,
       customerPhone,
       customerEmail,
+      location,
+      groomName,
+      brideName,
+      hallName,
       date,
       period,
       reservationType = 'single',
@@ -415,6 +419,10 @@ router.post('/', async (req, res) => {
       customerName,
       customerPhone,
       customerEmail,
+      location,
+      groomName,
+      brideName,
+      hallName,
       pack,
       typePhotographie,
       teamPreference,
@@ -500,6 +508,10 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
       customerName,
       customerPhone,
       customerEmail,
+      location,
+      groomName,
+      brideName,
+      hallName,
       pack,
       typePhotographie,
       teamPreference,
@@ -537,6 +549,10 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     if (customerName !== undefined) updateData.customerName = customerName;
     if (customerPhone !== undefined) updateData.customerPhone = customerPhone;
     if (customerEmail !== undefined) updateData.customerEmail = customerEmail;
+    if (location !== undefined) updateData.location = location;
+    if (groomName !== undefined) updateData.groomName = groomName;
+    if (brideName !== undefined) updateData.brideName = brideName;
+    if (hallName !== undefined) updateData.hallName = hallName;
     if (pack !== undefined) updateData.pack = pack;
     if (typePhotographie !== undefined) updateData.typePhotographie = typePhotographie;
     if (teamPreference !== undefined) updateData.teamPreference = teamPreference;
