@@ -352,11 +352,7 @@ router.get('/:id', async (req, res) => {
 // Create new reservation
 router.post('/', async (req, res) => {
   try {
-    console.log('=== RESERVATION POST REQUEST RECEIVED ===');
-    console.log('Request method:', req.method);
-    console.log('Request URL:', req.originalUrl);
-    console.log('User from request:', req.user);
-    
+        
     const {
       customerName,
       customerPhone,
@@ -502,16 +498,7 @@ router.post('/', async (req, res) => {
 // Update reservation
 router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'Reservation'), async (req, res) => {
   try {
-    console.log('=== PUT REQUEST BODY ===');
-    console.log('Full request body:', req.body);
-    console.log('Wedding info from request:', {
-      location: req.body.location,
-      groomName: req.body.groomName,
-      brideName: req.body.brideName,
-      hallName: req.body.hallName
-    });
-    console.log('========================');
-    
+        
     const { 
       date, 
       period, 
@@ -575,17 +562,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     if (additionalItems !== undefined) updateData.additionalItems = additionalItems;
     if (reservationType !== undefined) updateData.reservationType = reservationType;
     
-    console.log('=== UPDATE DATA ===');
-    console.log('Update data being sent to database:', updateData);
-    console.log('Wedding info in updateData:', {
-      location: updateData.location,
-      groomName: updateData.groomName,
-      brideName: updateData.brideName,
-      hallName: updateData.hallName
-    });
-    console.log('Additional items in updateData:', updateData.additionalItems);
-    console.log('==================');
-    
+        
     // Handle date/period vs multiDayPeriods
     if (reservationType === 'multi_day' && multiDayPeriods) {
       // Convert multiDayPeriods dates to Date objects
@@ -613,16 +590,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
     
-    console.log('=== UPDATED RESERVATION FROM DB ===');
-    console.log('Updated reservation from database:', updatedReservation);
-    console.log('Wedding info in updated reservation:', {
-      location: updatedReservation.location,
-      groomName: updatedReservation.groomName,
-      brideName: updatedReservation.brideName,
-      hallName: updatedReservation.hallName
-    });
-    console.log('==================================');
-    
+        
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });
     }
