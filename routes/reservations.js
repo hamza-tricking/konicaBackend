@@ -579,6 +579,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
       brideName: updateData.brideName,
       hallName: updateData.hallName
     });
+    console.log('Additional items in updateData:', updateData.additionalItems);
     console.log('==================');
     
     // Handle date/period vs multiDayPeriods
@@ -607,6 +608,16 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     ).populate('pack', 'name price features')
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
+    
+    console.log('=== UPDATED RESERVATION FROM DB ===');
+    console.log('Updated reservation from database:', updatedReservation);
+    console.log('Wedding info in updated reservation:', {
+      location: updatedReservation.location,
+      groomName: updatedReservation.groomName,
+      brideName: updatedReservation.brideName,
+      hallName: updatedReservation.hallName
+    });
+    console.log('==================================');
     
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });
