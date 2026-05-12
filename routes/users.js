@@ -48,6 +48,7 @@ router.get('/:id', protect, async (req, res) => {
   }
 });
 
+
 // Update user
 router.put('/:id', protect, historyMiddleware('USER_UPDATE', 'User'), async (req, res) => {
   try {

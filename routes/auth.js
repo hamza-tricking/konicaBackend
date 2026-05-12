@@ -22,7 +22,7 @@ const generateToken = (id) => {
 // @access  Public
 router.post('/register', historyMiddleware('USER_REGISTER', 'User'), async (req, res) => {
   try {
-    const { username, password, role } = req.body;
+    const { username, password, fullName, profilePhoto, role } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ username });
@@ -34,6 +34,8 @@ router.post('/register', historyMiddleware('USER_REGISTER', 'User'), async (req,
     const user = await User.create({
       username,
       password,
+      fullName,
+      profilePhoto,
       role: role || 'user'
     });
 
@@ -41,6 +43,8 @@ router.post('/register', historyMiddleware('USER_REGISTER', 'User'), async (req,
       res.status(201).json({
         _id: user._id,
         username: user.username,
+        fullName: user.fullName,
+        profilePhoto: user.profilePhoto,
         role: user.role,
         token: generateToken(user._id)
       });
