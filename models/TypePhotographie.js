@@ -6,7 +6,7 @@ const typePhotographieSchema = new mongoose.Schema({
     required: [true, 'Photography type name is required'],
     trim: true,
     maxlength: [100, 'Name cannot exceed 100 characters'],
-    unique: true
+    unique: false
   },
   description: {
     type: String,
