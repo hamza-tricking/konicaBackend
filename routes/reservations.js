@@ -517,7 +517,8 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
       assignedEmployers,
       invoice,
       notes,
-      additionalItems
+      additionalItems,
+      status
     } = req.body;
     
     // Check availability if date/period or multi-day periods are provided
@@ -561,6 +562,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     if (notes !== undefined) updateData.notes = notes;
     if (additionalItems !== undefined) updateData.additionalItems = additionalItems;
     if (reservationType !== undefined) updateData.reservationType = reservationType;
+    if (status !== undefined) updateData.status = status;
     
         
     // Handle date/period vs multiDayPeriods

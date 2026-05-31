@@ -52,7 +52,7 @@ app.use(cors({
     'https://konica-1geua1bvw-hamza-trickings-projects.vercel.app',
     'https://www.konicavision.com'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
