@@ -324,7 +324,7 @@ reservationSchema.pre('save', function(next) {
   }, 0);
   
   // Calculate total price
-  this.invoice.totalPrice = this.invoice.packPrice + this.invoice.additionalCharges + additionalItemsTotal - this.invoice.discount;
+  this.invoice.totalPrice = this.invoice.packPrice + this.invoice.additionalCharges - this.invoice.discount;
   this.invoice.remainingAmount = this.invoice.totalPrice - this.invoice.paidAmount;
   
   console.log('Reservation total calculation:', {
@@ -358,7 +358,7 @@ reservationSchema.pre(['updateOne', 'updateMany', 'findOneAndUpdate'], function(
         }, 0);
         
         // Calculate total price
-        update.invoice.totalPrice = update.invoice.packPrice + update.invoice.additionalCharges + additionalItemsTotal - update.invoice.discount;
+        update.invoice.totalPrice = update.invoice.packPrice + update.invoice.additionalCharges - update.invoice.discount;
         update.invoice.remainingAmount = update.invoice.totalPrice - update.invoice.paidAmount;
         
         console.log('Reservation update total calculation:', {
