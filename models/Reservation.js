@@ -178,6 +178,20 @@ const reservationSchema = new mongoose.Schema({
     }
   }],
 
+  // Manual Charges
+  manualCharges: [{
+    name: {
+      type: String,
+      required: [true, 'Manual charge name is required'],
+      trim: true
+    },
+    price: {
+      type: Number,
+      required: [true, 'Manual charge price is required'],
+      min: [0, 'Price cannot be negative']
+    }
+  }],
+
   // Status and Notes
   status: {
     type: String,
@@ -323,8 +337,13 @@ reservationSchema.pre('save', function(next) {
     return total + (item.price * item.quantity);
   }, 0);
   
+  // Calculate manual charges total
+  const manualChargesTotal = (this.manualCharges || []).reduce((total, item) => {
+    return total + item.price;
+  }, 0);
+  
   // Calculate total price
-  this.invoice.totalPrice = this.invoice.packPrice + this.invoice.additionalCharges - this.invoice.discount;
+  this.invoice.totalPrice = this.invoice.packPrice + this.invoice.additionalCharges + manualChargesTotal - this.invoice.discount;
   this.invoice.remainingAmount = this.invoice.totalPrice - this.invoice.paidAmount;
   
   console.log('Reservation total calculation:', {
@@ -332,6 +351,7 @@ reservationSchema.pre('save', function(next) {
     additionalCharges: this.invoice.additionalCharges,
     discount: this.invoice.discount,
     additionalItemsTotal,
+    manualChargesTotal,
     totalPrice: this.invoice.totalPrice,
     paidAmount: this.invoice.paidAmount,
     remainingAmount: this.invoice.remainingAmount
@@ -357,8 +377,12 @@ reservationSchema.pre(['updateOne', 'updateMany', 'findOneAndUpdate'], function(
           return total + (item.price * item.quantity);
         }, 0);
         
+        const manualChargesTotal = (doc.manualCharges || []).reduce((total, item) => {
+          return total + item.price;
+        }, 0);
+        
         // Calculate total price
-        update.invoice.totalPrice = update.invoice.packPrice + update.invoice.additionalCharges - update.invoice.discount;
+        update.invoice.totalPrice = update.invoice.packPrice + update.invoice.additionalCharges + manualChargesTotal - update.invoice.discount;
         update.invoice.remainingAmount = update.invoice.totalPrice - update.invoice.paidAmount;
         
         console.log('Reservation update total calculation:', {
@@ -366,6 +390,7 @@ reservationSchema.pre(['updateOne', 'updateMany', 'findOneAndUpdate'], function(
           additionalCharges: update.invoice.additionalCharges,
           discount: update.invoice.discount,
           additionalItemsTotal,
+          manualChargesTotal,
           totalPrice: update.invoice.totalPrice,
           paidAmount: update.invoice.paidAmount,
           remainingAmount: update.invoice.remainingAmount

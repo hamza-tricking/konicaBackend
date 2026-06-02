@@ -518,6 +518,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
       invoice,
       notes,
       additionalItems,
+      manualCharges,
       status
     } = req.body;
     
@@ -561,6 +562,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     if (invoice !== undefined) updateData.invoice = invoice;
     if (notes !== undefined) updateData.notes = notes;
     if (additionalItems !== undefined) updateData.additionalItems = additionalItems;
+    if (manualCharges !== undefined) updateData.manualCharges = manualCharges;
     if (reservationType !== undefined) updateData.reservationType = reservationType;
     if (status !== undefined) updateData.status = status;
     
