@@ -68,22 +68,13 @@ const reservationSchema = new mongoose.Schema({
     }
   },
 
-  // Multi-day periods (للحجوزات المتعددة الأيام)
+  // Multi-day periods (للحجوزات المتعددة الأيام - تواريخ محددة)
   multiDayPeriods: [{
-    startDate: {
+    date: {
       type: Date,
       required: function() { return this.reservationType === 'multi_day'; }
     },
-    endDate: {
-      type: Date,
-      required: function() { return this.reservationType === 'multi_day'; }
-    },
-    startPeriod: {
-      type: String,
-      enum: ['morning', 'evening'],
-      required: function() { return this.reservationType === 'multi_day'; }
-    },
-    endPeriod: {
+    period: {
       type: String,
       enum: ['morning', 'evening'],
       required: function() { return this.reservationType === 'multi_day'; }
@@ -275,17 +266,17 @@ reservationSchema.virtual('reservationTypeArabic').get(function() {
 // Virtual for display info
 reservationSchema.virtual('displayInfo').get(function() {
   if (this.reservationType === 'multi_day') {
-    const firstPeriod = this.multiDayPeriods[0];
-    const lastPeriod = this.multiDayPeriods[this.multiDayPeriods.length - 1];
     return {
       type: 'متعدد الأيام',
-      startDate: firstPeriod.startDate,
-      endDate: lastPeriod.endDate,
-      startPeriod: firstPeriod.startPeriod,
-      endPeriod: lastPeriod.endPeriod,
       totalPeriods: this.multiDayPeriods.length,
-      dateDisplay: `${this.formatDate(firstPeriod.startDate)} - ${this.formatDate(lastPeriod.endDate)}`,
-      periodDisplay: `${this.getPeriodText(firstPeriod.startPeriod)} - ${this.getPeriodText(lastPeriod.endPeriod)}`
+      periods: this.multiDayPeriods.map(p => ({
+        date: p.date,
+        period: p.period,
+        dateDisplay: this.formatDate(p.date),
+        periodDisplay: this.getPeriodText(p.period)
+      })),
+      dateDisplay: this.multiDayPeriods.map(p => this.formatDate(p.date)).join('، '),
+      periodDisplay: this.multiDayPeriods.map(p => this.getPeriodText(p.period)).join('، ')
     };
   } else {
     return {

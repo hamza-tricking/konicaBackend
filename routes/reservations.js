@@ -5,242 +5,77 @@ const { historyMiddleware } = require('../middleware/historyMiddleware');
 const { protect, employer } = require('../middleware/auth');
 const router = express.Router();
 
-// Date checking function for reservations - updated for multi-day support
+// Helper to check if a specific date+period is available
+const checkSingleSlotAvailability = async (date, period, excludeId = null) => {
+  const query = {
+    date: new Date(date),
+    period: period,
+    status: { $ne: 'cancelled' }
+  };
+  if (excludeId) {
+    query._id = { $ne: excludeId };
+  }
+  // Check both reservation types: look for any reservation (single or multi_day) with the same date+period
+  // For multi_day reservations, check individual periods
+  const existing = await Reservation.findOne({
+    $or: [
+      { ...query, reservationType: { $in: ['single', undefined, null] } },
+      { 
+        reservationType: 'multi_day',
+        'multiDayPeriods': {
+          $elemMatch: { date: new Date(date), period: period }
+        },
+        status: { $ne: 'cancelled' },
+        ...(excludeId ? { _id: { $ne: excludeId } } : {})
+      }
+    ]
+  });
+  return !existing;
+};
+
+// Date checking function for reservations - simplified for specific dates
 const checkReservationAvailability = async (reservationData, excludeId = null) => {
   try {
     const { reservationType, date, period, multiDayPeriods } = reservationData;
     
-    console.log('=== CHECK RESERVATION AVAILABILITY ===');
-    console.log('Reservation Type:', reservationType);
-    console.log('Date:', date);
-    console.log('Period:', period);
-    console.log('Multi-day Periods:', multiDayPeriods);
-    console.log('=======================================');
-    
-    if (reservationType === 'single') {
-      // Single day reservation check
-      const query = {
-        date: new Date(date),
-        period: period,
-        status: { $ne: 'cancelled' },
-        $or: [
-          { reservationType: 'single' },
-          { reservationType: { $exists: false } } // Include old reservations without reservationType
-        ]
-      };
-      
-      // Exclude current reservation if provided
-      if (excludeId) {
-        query._id = { $ne: excludeId };
-      }
-      
-      const existingReservation = await Reservation.findOne(query);
-
-      if (existingReservation) {
-        return {
-          available: false,
-          message: 'يوجد بالفعل حجز في هذا التاريخ والفترة'
-        };
-      }
-      
-      // Check multi-day reservations that might overlap
-      const multiDayQuery = {
-        reservationType: 'multi_day',
-        'multiDayPeriods.startDate': { $lte: new Date(date) },
-        'multiDayPeriods.endDate': { $gte: new Date(date) },
-        status: { $ne: 'cancelled' }
-      };
-      
-      // Exclude current reservation if provided
-      if (excludeId) {
-        multiDayQuery._id = { $ne: excludeId };
-      }
-      
-      const conflictingMultiDay = await Reservation.find(multiDayQuery);
-
-      console.log('Found conflicting multi-day reservations:', conflictingMultiDay.length);
-
-      for (const multiDay of conflictingMultiDay) {
-        console.log('Checking multi-day reservation:', multiDay._id);
-        for (const periodRange of multiDay.multiDayPeriods) {
-          const periodStart = new Date(periodRange.startDate);
-          const periodEnd = new Date(periodRange.endDate);
-          const checkDate = new Date(date);
-          
-          console.log('Period Range:', {
-            start: periodStart.toISOString().split('T')[0],
-            end: periodEnd.toISOString().split('T')[0],
-            startPeriod: periodRange.startPeriod,
-            endPeriod: periodRange.endPeriod
-          });
-          console.log('Check Date:', checkDate.toISOString().split('T')[0]);
-          
-          if (checkDate >= periodStart && checkDate <= periodEnd) {
-            console.log('Date is within range!');
-            // Check if there's a period conflict
-            let hasPeriodConflict = false;
-            
-            // If the multi-day period spans both morning and evening, any single period conflicts
-            if (periodRange.startPeriod !== periodRange.endPeriod) {
-              console.log('Multi-day spans both periods, any single period conflicts');
-              hasPeriodConflict = true;
-            } else {
-              // If the multi-day period is single (morning OR evening), check for exact match
-              console.log('Multi-day is single period, checking exact match');
-              hasPeriodConflict = (period === periodRange.startPeriod);
-              console.log('Period match:', period, '===', periodRange.startPeriod, '=', hasPeriodConflict);
-            }
-            
-            if (hasPeriodConflict) {
-              console.log('CONFLICT FOUND!');
-              return {
-                available: false,
-                message: `هذا التاريخ محجوز ضمن حجز متعدد الأيام (${periodRange.startDate.toLocaleDateString('en-US')} - ${periodRange.endDate.toLocaleDateString('en-US')})`
-              };
-            }
-          }
-        }
-      }
-      
-      return {
-        available: true,
-        message: 'هذا التاريخ متاح في الفترة المطلوبة'
-      };
-      
-    } else if (reservationType === 'multi_day') {
-      // Multi-day reservation check
+    if (reservationType === 'multi_day' && multiDayPeriods && multiDayPeriods.length > 0) {
       const conflicts = [];
-      
-      for (const requestedPeriod of multiDayPeriods) {
-        const requestedStart = new Date(requestedPeriod.startDate);
-        const requestedEnd = new Date(requestedPeriod.endDate);
-        
-        // Check single day reservations
-        const singleDayQuery = {
-          $or: [
-            { reservationType: 'single' },
-            { reservationType: { $exists: false } } // Include old reservations without reservationType
-          ],
-          date: { $gte: requestedStart, $lte: requestedEnd },
-          status: { $ne: 'cancelled' }
-        };
-        
-        // Exclude current reservation if provided
-        if (excludeId) {
-          singleDayQuery._id = { $ne: excludeId };
-        }
-        
-        const singleDayConflicts = await Reservation.find(singleDayQuery);
-        
-        console.log('Found single day conflicts:', singleDayConflicts.length);
-        
-        for (const single of singleDayConflicts) {
-          const singleDate = new Date(single.date);
-          
-          console.log('Checking single reservation:', {
-            date: singleDate.toISOString().split('T')[0],
-            period: single.period
+      for (const slot of multiDayPeriods) {
+        const available = await checkSingleSlotAvailability(slot.date, slot.period, excludeId);
+        if (!available) {
+          const d = new Date(slot.date);
+          conflicts.push({
+            date: slot.date,
+            period: slot.period,
+            message: `${d.toLocaleDateString('en-US')} ${slot.period === 'morning' ? 'صباحاً' : 'مساءً'} - هذا الموعد محجوز بالفعل`
           });
-          console.log('Requested period range:', {
-            start: requestedStart.toISOString().split('T')[0],
-            end: requestedEnd.toISOString().split('T')[0],
-            startPeriod: requestedPeriod.startPeriod,
-            endPeriod: requestedPeriod.endPeriod
-          });
-          
-          // Check if the single date falls within the multi-day period range
-          if (singleDate >= requestedStart && singleDate <= requestedEnd) {
-            console.log('Single date is within multi-day range!');
-            // Now check if there's a period conflict
-            let hasPeriodConflict = false;
-            
-            // If the multi-day period spans both morning and evening, any single period conflicts
-            if (requestedPeriod.startPeriod !== requestedPeriod.endPeriod) {
-              console.log('Requested period spans both, any single period conflicts');
-              hasPeriodConflict = true;
-            } else {
-              // If the multi-day period is single (morning OR evening), check for exact match
-              console.log('Requested period is single, checking exact match');
-              hasPeriodConflict = (single.period === requestedPeriod.startPeriod);
-              console.log('Period match:', single.period, '===', requestedPeriod.startPeriod, '=', hasPeriodConflict);
-            }
-            
-            if (hasPeriodConflict) {
-              console.log('SINGLE CONFLICT FOUND!');
-              conflicts.push({
-                type: 'single',
-                date: single.date,
-                period: single.period,
-                message: `يتعارض مع حجز يوم واحد في ${single.date.toLocaleDateString('en-US')} ${single.period === 'morning' ? 'صباحاً' : 'مساءً'}`
-              });
-            }
-          }
-        }
-        
-        // Check multi-day reservations
-        const multiDayConflictQuery = {
-          reservationType: 'multi_day',
-          'multiDayPeriods.startDate': { $lte: requestedEnd },
-          'multiDayPeriods.endDate': { $gte: requestedStart },
-          status: { $ne: 'cancelled' }
-        };
-        
-        // Exclude current reservation if provided
-        if (excludeId) {
-          multiDayConflictQuery._id = { $ne: excludeId };
-        }
-        
-        const multiDayConflicts = await Reservation.find(multiDayConflictQuery);
-        
-        for (const existingMultiDay of multiDayConflicts) {
-          for (const existingPeriod of existingMultiDay.multiDayPeriods) {
-            const existingStart = new Date(existingPeriod.startDate);
-            const existingEnd = new Date(existingPeriod.endDate);
-            
-            if (requestedStart <= existingEnd && requestedEnd >= existingStart) {
-              const periodOverlap = 
-                (requestedPeriod.startPeriod === existingPeriod.startPeriod) ||
-                (requestedPeriod.endPeriod === existingPeriod.endPeriod) ||
-                (requestedPeriod.startPeriod === existingPeriod.endPeriod) ||
-                (requestedPeriod.endPeriod === existingPeriod.startPeriod);
-                
-              if (periodOverlap) {
-                conflicts.push({
-                  type: 'multi_day',
-                  startDate: existingPeriod.startDate,
-                  endDate: existingPeriod.endDate,
-                  message: `يتعارض مع حجز متعدد الأيام (${existingPeriod.startDate.toLocaleDateString('en-US')} - ${existingPeriod.endDate.toLocaleDateString('en-US')})`
-                });
-              }
-            }
-          }
         }
       }
-      
       if (conflicts.length > 0) {
         return {
           available: false,
-          message: 'توجد تعارضات في الفترات المطلوبة',
-          conflicts: conflicts
+          message: 'توجد تعارضات في المواعيد المحددة',
+          conflicts
         };
       }
-      
       return {
         available: true,
-        message: 'الفترات المطلوبة متاحة للحجز'
+        message: 'جميع المواعيد المحددة متاحة'
       };
     }
     
+    // Single day check
+    if (!date || !period) {
+      return { available: false, message: 'التاريخ والفترة مطلوبان' };
+    }
+    const available = await checkSingleSlotAvailability(date, period, excludeId);
     return {
-      available: false,
-      message: 'نوع الحجز غير صالح'
+      available,
+      message: available ? 'هذا التاريخ متاح في الفترة المطلوبة' : 'يوجد بالفعل حجز في هذا التاريخ والفترة'
     };
   } catch (error) {
     console.error('Error checking reservation availability:', error);
-    return {
-      available: false,
-      message: 'حدث خطأ أثناء التحقق من توفر التاريخ'
-    };
+    return { available: false, message: 'حدث خطأ أثناء التحقق من توفر التاريخ' };
   }
 };
 
@@ -445,10 +280,9 @@ router.post('/', async (req, res) => {
     
     // Convert multiDayPeriods dates to Date objects if present
     if (preparedReservationData.multiDayPeriods && Array.isArray(preparedReservationData.multiDayPeriods)) {
-      preparedReservationData.multiDayPeriods = preparedReservationData.multiDayPeriods.map(period => ({
-        ...period,
-        startDate: period.startDate ? new Date(period.startDate) : undefined,
-        endDate: period.endDate ? new Date(period.endDate) : undefined
+      preparedReservationData.multiDayPeriods = preparedReservationData.multiDayPeriods.map(slot => ({
+        ...slot,
+        date: slot.date ? new Date(slot.date) : undefined
       }));
     }
     
@@ -570,10 +404,9 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     // Handle date/period vs multiDayPeriods
     if (reservationType === 'multi_day' && multiDayPeriods) {
       // Convert multiDayPeriods dates to Date objects
-      updateData.multiDayPeriods = multiDayPeriods.map(period => ({
-        ...period,
-        startDate: period.startDate ? new Date(period.startDate) : undefined,
-        endDate: period.endDate ? new Date(period.endDate) : undefined
+      updateData.multiDayPeriods = multiDayPeriods.map(slot => ({
+        ...slot,
+        date: slot.date ? new Date(slot.date) : undefined
       }));
       // Remove single date/period for multi-day reservations
       updateData.date = undefined;

@@ -93,20 +93,11 @@ const orderSchema = new mongoose.Schema({
 
   // Multi-day periods for multi-day reservations
   multiDayPeriods: [{
-    startDate: {
+    date: {
       type: Date,
       required: function() { return this.reservationType === 'multi_day'; }
     },
-    endDate: {
-      type: Date,
-      required: function() { return this.reservationType === 'multi_day'; }
-    },
-    startPeriod: {
-      type: String,
-      required: function() { return this.reservationType === 'multi_day'; },
-      enum: ['morning', 'evening']
-    },
-    endPeriod: {
+    period: {
       type: String,
       required: function() { return this.reservationType === 'multi_day'; },
       enum: ['morning', 'evening']
