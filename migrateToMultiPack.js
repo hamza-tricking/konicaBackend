@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
-require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
-
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 async function migrateToMultiPack() {
   try {
     // Connect to MongoDB
