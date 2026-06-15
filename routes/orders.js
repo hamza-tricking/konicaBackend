@@ -139,7 +139,7 @@ router.post('/', async (req, res) => {
     console.log('=== ORDER SUBMISSION DEBUG ===');
     console.log('Order data received:', JSON.stringify(orderData, null, 2));
     console.log('User from request:', req.user);
-    console.log('Pack ID:', orderData.pack);
+    console.log('Pack IDs:', orderData.packs);
     console.log('TypePhotographie ID:', orderData.typePhotographie);
     console.log('Reservation Type:', orderData.reservationType);
     console.log('Date:', orderData.date);
@@ -239,7 +239,7 @@ router.post('/', async (req, res) => {
 router.get('/', protect, employer, async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate('pack')
+      .populate('packs')
       .populate('typePhotographie')
       .sort({ createdAt: -1 });
     
@@ -260,7 +260,7 @@ router.get('/', protect, employer, async (req, res) => {
 router.get('/:id', protect, employer, async (req, res) => {
   try {
     const order = await Order.findById(req.params.id)
-      .populate('pack')
+      .populate('packs')
       .populate('typePhotographie');
     
     if (!order) {
@@ -312,7 +312,7 @@ router.put('/:id/state', protect, employer, async (req, res) => {
       req.params.id,
       { state },
       { new: true }
-    ).populate('pack').populate('typePhotographie');
+    ).populate('packs').populate('typePhotographie');
     
     if (!updatedOrder) {
       return res.status(404).json({
