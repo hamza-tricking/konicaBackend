@@ -3,9 +3,7 @@ require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 async function migrateToMultiPack() {
   try {
     // Connect to MongoDB
-    const mongoURI = process.env.MONGO_URI ;
-    await mongoose.connect(mongoURI);
-    console.log('Connected to MongoDB:', mongoURI);
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://hamzatricks:hamzatricks@cluster0.sjxud.mongodb.net/konica');
 
     const db = mongoose.connection.db;
 
