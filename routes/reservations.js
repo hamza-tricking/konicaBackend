@@ -154,7 +154,7 @@ router.get('/check-availability', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const reservations = await Reservation.find()
-      .populate('pack', 'name price features')
+      .populate('packs', 'name price features')
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName')
       .sort({ createdAt: -1, date: -1 });
@@ -169,7 +169,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const reservation = await Reservation.findById(req.params.id)
-      .populate('pack', 'name price features')
+      .populate('packs', 'name price features')
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName');
     
@@ -200,7 +200,7 @@ router.post('/', async (req, res) => {
       period,
       reservationType = 'single',
       multiDayPeriods,
-      pack,
+      packs,
       typePhotographie,
       teamPreference,
       assignedEmployers,
@@ -232,19 +232,20 @@ router.post('/', async (req, res) => {
     }
 
     // Get pack details for pricing
-    const packDetails = await Pack.findById(pack);
-    if (!packDetails) {
-      return res.status(400).json({ message: 'Invalid pack selected' });
+    let totalPackPrice = 0;
+    if (packs && packs.length > 0) {
+      const packDetailsArray = await Pack.find({ _id: { $in: packs } });
+      totalPackPrice = packDetailsArray.reduce((sum, p) => sum + p.price, 0);
     }
 
     // Calculate invoice if not provided
     const calculatedInvoice = {
-      packPrice: packDetails.price,
+      packPrice: totalPackPrice,
       additionalCharges: invoice?.additionalCharges || 0,
       discount: invoice?.discount || 0,
-      totalPrice: packDetails.price + (invoice?.additionalCharges || 0) - (invoice?.discount || 0),
+      totalPrice: totalPackPrice + (invoice?.additionalCharges || 0) - (invoice?.discount || 0),
       paidAmount: invoice?.paidAmount || 0,
-      remainingAmount: packDetails.price + (invoice?.additionalCharges || 0) - (invoice?.discount || 0) - (invoice?.paidAmount || 0)
+      remainingAmount: totalPackPrice + (invoice?.additionalCharges || 0) - (invoice?.discount || 0) - (invoice?.paidAmount || 0)
     };
 
     const reservationData = {
@@ -255,7 +256,7 @@ router.post('/', async (req, res) => {
       groomName,
       brideName,
       hallName,
-      pack,
+      packs,
       typePhotographie,
       teamPreference,
       assignedEmployers: assignedEmployers || [],
@@ -318,7 +319,7 @@ router.post('/', async (req, res) => {
     
     // Populate the saved reservation with related data
     const populatedReservation = await Reservation.findById(savedReservation._id)
-      .populate('pack', 'name price features')
+      .populate('packs', 'name price features')
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName');
     
@@ -345,7 +346,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
       groomName,
       brideName,
       hallName,
-      pack,
+      packs,
       typePhotographie,
       teamPreference,
       assignedEmployers,
@@ -389,7 +390,7 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
     if (groomName !== undefined) updateData.groomName = groomName;
     if (brideName !== undefined) updateData.brideName = brideName;
     if (hallName !== undefined) updateData.hallName = hallName;
-    if (pack !== undefined) updateData.pack = pack;
+    if (packs !== undefined) updateData.packs = packs;
     if (typePhotographie !== undefined) updateData.typePhotographie = typePhotographie;
     if (teamPreference !== undefined) updateData.teamPreference = teamPreference;
     if (assignedEmployers !== undefined) updateData.assignedEmployers = assignedEmployers;
@@ -423,11 +424,11 @@ router.put('/:id', protect, employer, historyMiddleware('RESERVATION_UPDATE', 'R
       req.params.id,
       updateData,
       { new: true, runValidators: true }
-    ).populate('pack', 'name price features')
+    ).populate('packs', 'name price features')
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
     
-        
+    
     if (!updatedReservation) {
       return res.status(404).json({ message: 'Reservation not found' });
     }
@@ -448,7 +449,7 @@ router.patch('/:id/status', protect, employer, historyMiddleware('RESERVATION_UP
       req.params.id,
       { status },
       { new: true, runValidators: true }
-    ).populate('pack', 'name price features')
+    ).populate('packs', 'name price features')
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
     
@@ -472,7 +473,7 @@ router.patch('/:id/assign-employer', protect, employer, historyMiddleware('RESER
       req.params.id,
       { $push: { assignedEmployers: employerId } },
       { new: true, runValidators: true }
-    ).populate('pack', 'name price features')
+    ).populate('packs', 'name price features')
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
     
@@ -501,7 +502,7 @@ router.patch('/:id/invoice', protect, employer, historyMiddleware('INVOICE_UPDAT
         'invoice.paidAmount': invoice.paidAmount || 0
       },
       { new: true, runValidators: true }
-    ).populate('pack', 'name price features')
+    ).populate('packs', 'name price features')
      .populate('typePhotographie', 'name description photo')
      .populate('assignedEmployers', 'username fullName');
     
@@ -543,7 +544,7 @@ router.get('/date-range/:startDate/:endDate', async (req, res) => {
         $lte: new Date(endDate)
       }
     })
-      .populate('pack', 'name price features')
+      .populate('packs', 'name price features')
       .populate('assignedEmployers', 'username fullName')
       .sort({ date: 1 });
     
@@ -612,7 +613,7 @@ router.get('/employer/:employerId', async (req, res) => {
     
     // First, let's see all reservations to debug
     const allReservations = await Reservation.find({})
-      .populate('pack', 'name price features')
+      .populate('packs', 'name price features')
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName')
       .sort({ createdAt: -1, date: -1 });
@@ -628,7 +629,7 @@ router.get('/employer/:employerId', async (req, res) => {
     const reservations = await Reservation.find({
       assignedEmployers: employerId
     })
-      .populate('pack', 'name price features')
+      .populate('packs', 'name price features')
       .populate('typePhotographie', 'name description photo')
       .populate('assignedEmployers', 'username fullName')
       .sort({ createdAt: -1, date: -1 });

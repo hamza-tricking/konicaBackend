@@ -85,12 +85,11 @@ const reservationSchema = new mongoose.Schema({
     }
   }],
 
-  // Related Pack
-  pack: {
+  // Related Packs (multiple packs per reservation)
+  packs: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Pack',
-    required: [true, 'Pack is required']
-  },
+    ref: 'Pack'
+  }],
 
   // Photography Type
   typePhotographie: {
@@ -216,7 +215,7 @@ const reservationSchema = new mongoose.Schema({
 reservationSchema.index({ date: 1 });
 reservationSchema.index({ status: 1 });
 reservationSchema.index({ assignedEmployers: 1 });
-reservationSchema.index({ pack: 1 });
+reservationSchema.index({ packs: 1 });
 reservationSchema.index({ customerPhone: 1 });
 
 // Virtual for formatted date

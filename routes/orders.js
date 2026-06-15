@@ -211,7 +211,7 @@ router.post('/', async (req, res) => {
     }
     
     // Populate related data for response
-    await savedOrder.populate('pack');
+    await savedOrder.populate('packs');
     await savedOrder.populate('typePhotographie');
     
     res.status(201).json({

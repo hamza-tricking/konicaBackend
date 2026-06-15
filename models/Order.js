@@ -108,12 +108,11 @@ const orderSchema = new mongoose.Schema({
     }
   }],
 
-  // Related Pack (same as reservation)
-  pack: {
+  // Related Packs (multiple packs per order)
+  packs: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Pack',
-    required: [true, 'Pack is required']
-  },
+    ref: 'Pack'
+  }],
 
   // Photography Type (same as reservation)
   typePhotographie: {
@@ -225,7 +224,7 @@ const orderSchema = new mongoose.Schema({
 // Indexes for better query performance
 orderSchema.index({ date: 1 });
 orderSchema.index({ state: 1 });
-orderSchema.index({ pack: 1 });
+orderSchema.index({ packs: 1 });
 orderSchema.index({ customerPhone: 1 });
 
 // Virtual for formatted date
